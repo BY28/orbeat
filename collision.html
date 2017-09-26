@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>3DM</title>
+	<link rel="stylesheet" type="text/css" href="src/css/style.css">
+	<link rel="stylesheet" type="text/css" href="src/css/animate.min.css">
+
+</head>
+<body>
+
+	<div class="game-container" id="gameContainer">	
+
+		<div id="intro" class='animated fadeIn'><h1 id="title">THREE MUSIC</h1><p id="subtitle">LIVE THE MUSIC</p><p id="description">A game that follows the music rythm for a total immersion.</p><div id="play">PLAY</div></div>
+
+		<div id="score" class="animated fadeInLeft"><div id="text">SCORE</div><div id="points">0</div></div>
+
+		<div id="pause" class="animated bounceIn">
+			<div id="resume">RESUME</div>
+			<div id="reset">REPLAY</div>
+			<div id="changeMusic">CHANGE MUSIC</div>
+		</div>
+
+		<div id="scores">
+			
+			<div id="portalScore" class="animated fadeInDown"> <div class="score-text">PORTALS<span>+1000</span></div> <span id="portalPoints" class="score-points">12</span> </div>
+			<div id="cometScore" class="animated fadeInDown"> <div class="score-text">COMETS<span>+100</span></div> <span id="cometPoints" class="score-points">33</span> </div>
+			<div id="wallScore" class="animated fadeInDown"> <div class="score-text">WALLS<span>-500</span></div> <span id="wallPoints" class="score-points">5</span> </div>
+			<div id="totalScore" class="animated fadeInDown"> <div class="score-text">SCORE</div><span id="scorePoints" class="score-points">10000</span> </div>
+		
+		<div id="choiceButtons" class="choice-buttons animated fadeIn">	
+			<div id="change">CHANGE MUSIC</div>
+			<div id="replay">REPLAY</div>
+		</div>
+		</div>
+		
+		
+		<div id="webglContainer"></div>
+	</div>
+
+	<script type="text/javascript" src="src/js/three.js"></script>
+	<script type="text/javascript" src="src/js/TweenMax.min.js"></script>
+	<script type="text/javascript" src="src/js/threex.keyboardstate.js"></script>
+	<script type="text/javascript" src="src/js/postprocessing/Wagner.js"></script>
+	<script type="text/javascript" src="src/js/postprocessing/Wagner.base.js"></script>
+	<script type="text/javascript" src="src/js/virtualjoystick.js"></script>
+	
+
+	<script type="text/javascript" src="src/js/backup.js"></script>
+	<script type="text/javascript">
+		console.log("touchscreen is", VirtualJoystick.touchScreenAvailable() ? "available" : "not available");
+	
+			/*
+			joystick.addEventListener('touchStart', function(){
+				console.log('down')
+			})
+			joystick.addEventListener('touchEnd', function(){
+				console.log('up')
+			})
+
+			setInterval(function(){
+				var outputEl	= document.getElementById('result');
+				outputEl.innerHTML	= '<b>Result:</b> '
+					+ ' dx:'+joystick.deltaX()
+					+ ' dy:'+joystick.deltaY()
+					+ (joystick.right()	? ' right'	: '')
+					+ (joystick.up()	? ' up'		: '')
+					+ (joystick.left()	? ' left'	: '')
+					+ (joystick.down()	? ' down' 	: '')	
+			}, 1/30 * 1000);
+
+			joystick.stopEvents();*/
+	</script>
+</body>
+</html>
