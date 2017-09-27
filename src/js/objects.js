@@ -499,7 +499,7 @@ Game.prototype.addStars = function()
 {
 	this.starsHolder = new StarHolder();
 	this.starsHolder.createStar(this.objectsColor);
-	this.starsHolder.createStar(this.objectsColor, true);
+	/*this.starsHolder.createStar(this.objectsColor, true);*/
 	this.scene.add(this.starsHolder.mesh);
 }
 
@@ -643,9 +643,9 @@ GameDOM.prototype.updateProgression = function()
 	this.progression.text.style.color = this.game.planetHolder.color.clear.replace('0x', '#');
 	this.progression.rect.style.background = this.game.planetHolder.color.clear.replace('0x', '#');
 	
-	var p = Math.floor(10 * this.game.gAudio.audio.currentTime/this.game.gAudio.audio.duration);
-	this.progression.rect.style.width = p+'vw';
-	this.progression.percent.innerHTML = p*10+' %';
+	var p = Math.floor(100 * this.game.gAudio.audio.currentTime/this.game.gAudio.audio.duration);
+	this.progression.rect.style.width = p*0.1+'vw';
+	this.progression.percent.innerHTML = p+' %';
 }
 
 GameDOM.prototype.introEvent = function()
