@@ -29,7 +29,9 @@
 		PERFORMANCE FIX (LIMIT WALL NUMBER?)
 		ADD JOYSTICK FOR MOBILE
 
-		BEGIN SPEED AT 1 ?
+		BEGIN SPEED AT 1 ? YES
+
+		TWO STARS BUG (0 INITSTART/COMETCOLLISION/END)
 */
 
 
@@ -230,8 +232,20 @@ Game.prototype.initStart = function()
 	this.gAudio.audio.currentTime = 0;
 	this.resetVariables();
 
-	this.scene.add(this.starsHolder.starsInUse[0].mesh);
-	TweenMax.to(this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 1, y: 1, z: 1});}});
+	var star = this.starsHolder.starsInUse[0].mesh;
+	this.scene.add(star);
+	TweenMax.to(star.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
+																					TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 1, y: 1, z: 1});
+																					if(_this.starsHolder.starsInUse.length > 1)
+																					{
+																						var star = _this.starsHolder.starsInUse[1].mesh;
+																						_this.scene.add(star);
+																						TweenMax.to(star.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
+																																									TweenMax.to(star.scale, 0.2, {x: 1, y: 1, z: 1});
+																																								}});
+
+																					}
+																				}});
 
 	this.status = 'start';
 }
@@ -268,6 +282,25 @@ Game.prototype.end = function()
 																																																								_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
 																																																							}});
 																											}});
+		TweenMax.to(this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 2, y: 2, z: 2, onComplete: function(){
+																						TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, 
+																									onComplete: function(){
+																															_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
+																													
+																															if(_this.starsHolder.starsInUse.length > 1)
+																															{
+																																TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 2, y: 2, z: 2, 
+																																			onComplete: function(){
+																																									TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, 
+																																									onComplete: function(){
+																																															_this.scene.remove(_this.starsHolder.starsInUse[1].mesh);
+																																														}});
+																																}});
+
+																															}
+																														}});
+																						
+																										}});
 		this.particlesHolder.speed = 0.1;
 		this.gDOM.endEvent();
 		this.status = 'waiting';
@@ -507,8 +540,8 @@ Game.prototype.addStars = function()
 {
 	this.starsHolder = new StarHolder();
 	this.starsHolder.createStar();
-	//this.starsHolder.createStar(true);
-	this.scene.add(this.starsHolder.mesh);
+	this.starsHolder.createStar(true);
+	//this.scene.add(this.starsHolder.mesh);
 }
 
 Game.prototype.initCollisions = function()
@@ -911,7 +944,6 @@ GameAudio.prototype.update = function()
 {
 	this.data_array = new Uint8Array(this.analyser.frequencyBinCount);
 	this.analyser.getByteFrequencyData(this.data_array);
-	console.log(this.data_array.length);
 }
 
 GameAudio.prototype.getMag = function(min, max)
@@ -2062,7 +2094,7 @@ StarHolder.prototype.createStar = function(negative=false)
 	var star = new Star();
 	star.negative = negative;
 	this.starsInUse.push(star);
-	//this.mesh.add(star.mesh);
+	this.mesh.add(star.mesh);
 }
 
 	/*
@@ -2171,10 +2203,12 @@ GameCollision.prototype.update = function()
 
 							this.game.ambientLight.intensity = 0.8;
 							TweenMax.to(this.game.ambientLight, 0.5, {intensity: 0.6});
-							TweenMax.to(star.mesh.scale, 0.1, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-									TweenMax.to(star.mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-								}});
 
+							var s = star;
+							TweenMax.to(s.mesh.scale, 0.1, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
+									TweenMax.to(s.mesh.scale, 0.2, {x: 1, y: 1, z: 1});
+								}});
+							
 							this.game.cometsHolder.mesh.remove(comet.mesh);
 							this.game.gScore.cometScore++;
 						}
