@@ -31,7 +31,18 @@
 
 		BEGIN SPEED AT 1 ? YES
 
-		TWO STARS BUG (0 INITSTART/COMETCOLLISION/END)
+		TWO STARS BUG (0 INITSTART/COMETCOLLISION/END)- FIXED
+
+		FIX JOYSTICK DISPLAY END
+		
+		USE CREATEJS TWEENJS - IMPORTANT: GSAP NEEDS LICENCE - 
+		CONVERT TO CREATEJS
+
+		PAUsE BUTTON
+
+		MAKE INFINITE MODE (NCS SOUNDS LOOP)
+
+
 */
 
 
@@ -148,7 +159,7 @@ Game.prototype.resetVariables = function()
 	
 	/* WALLS */
 
-	this.wallsHolder.speed = 0.5;
+	this.wallsHolder.speed = 1;
 	
 
 	/* PORTALS */
@@ -427,7 +438,7 @@ Game.prototype.update = function()
 						.start();
 	*/
 	this.gDOM.updateScore();
-	
+	gAnimation.update();
 }
 
 Game.prototype.render = function()
@@ -540,7 +551,7 @@ Game.prototype.addStars = function()
 {
 	this.starsHolder = new StarHolder();
 	this.starsHolder.createStar();
-	this.starsHolder.createStar(true);
+	//this.starsHolder.createStar(true);
 	//this.scene.add(this.starsHolder.mesh);
 }
 
@@ -1109,7 +1120,7 @@ WallsHolder = function(clearColor, darkColor)
 	this.wallsPool = [];
 	this.wallsList = [];
 
-	this.speed = 0.5;
+	this.speed = 1;
 	this.clearColor, this.darkColor;
 }
 
@@ -1136,7 +1147,9 @@ WallsHolder.prototype.spawnWalls = function()
 
 		wall.mesh.lookAt(new THREE.Vector3( (Math.random()*(25+25)-25) , (Math.random()*(25+25)-25) , wall.mesh.position.z));
 
-		TweenMax.to(wall.mesh.scale, 1, {z: 250});
+		//TweenMax.to(wall.mesh.scale, 1, {z: 250});
+		 createjs.Tween.get(wall.mesh.scale, {override:true})
+          .to({z: 250}, (1/this.speed)*1000);
 
 		this.mesh.add(wall.mesh);
 		this.wallsInUse.push(wall);
@@ -1156,7 +1169,10 @@ WallsHolder.prototype.update = function()
 
 		if(wall.mesh.position.z < 5 + this.speed*2 && wall.mesh.position.z > 5)
 		{
-			TweenMax.to(wall.mesh.scale, (1/this.speed)*0.2, {z: 0.1});
+			//TweenMax.to(wall.mesh.scale, (1/this.speed)*0.2, {z: 0.1});
+			
+		 createjs.Tween.get(wall.mesh.scale, {override:true})
+          .to({z: 0.1}, (1/this.speed)*0.2*100);
 		}
 		if(wall.mesh.position.z > 10)
 		{
@@ -1218,7 +1234,9 @@ Atmosphere.prototype.move = function(gAudio)
 	{
 		value += gAudio.magnitude*0.008;
 	}
-	TweenMax.to(this.mesh.scale, 0.25, {x: value, y: value, z: value});
+	//TweenMax.to(this.mesh.scale, 0.25, {x: value, y: value, z: value});
+	 createjs.Tween.get(this.mesh.scale, {override:true})
+          .to({x: value, y: value, z: value}, 250);
 }
 
 Planet = function(clearColor, darkColor)
@@ -1539,7 +1557,9 @@ PortalsHolder.prototype.spawnPortals = function(spawnTime)
 
 	portal.mesh.scale.set(0.1, 0.1, 0.1);
 
-	TweenMax.to(portal.mesh.scale, 1, {x: 1, y: 1, z: 1});
+	//TweenMax.to(portal.mesh.scale, 1, {x: 1, y: 1, z: 1});
+		 createjs.Tween.get(portal.mesh.scale, {override:true})
+          .to({x: 1, y: 1, z: 1}, 1000);
 
 	this.portalsInUse.push(portal);
 	this.portalsList.push(portal.collisionMesh);
@@ -2018,7 +2038,8 @@ Star.prototype.move = function(joystick)
 
 	//this.core.rotation.x += 0.02;
 	//this.core.rotation.y += 0.02;
-	var posX = this.mesh.position.x, posY = this.mesh.position.y;
+	
+	//var posX = this.mesh.position.x, posY = this.mesh.position.y;
 
 	/*if( joystick.right() ){
 		posX += 2;    
@@ -2033,24 +2054,78 @@ Star.prototype.move = function(joystick)
 		posY -= 2;  
 	}*/
 
-	posX = posX + joystick.deltaX()*(0.05);
-	posY = posY + joystick.deltaY()*(-0.05);
-
-
 	if(isMobile.any())
-	{
-		if( !( (posX > 20) || (posX < -20)))
-		{
-			TweenMax.to(this.mesh.position, 1, {x: posX});
+	{	
+		var joystickPos = {
+			x: this.mesh.position.x,
+			y: this.mesh.position.y
 		}
-		if( !( (posY > 12) || (posY < -12) ))
+
+		joystickPos.x = joystickPos.x + joystick.deltaX()*(0.05);
+		joystickPos.y = joystickPos.y + joystick.deltaY()*(-0.05);
+		
+		createjs.Tween.get(this.mesh.position, {override: true})
+          .to({x: !( (joystickPos.x > 20) || (joystickPos.x < -20) ) ? joystickPos.x : (joystickPos.x = Math.sign(joystickPos.x)*1*20), y: !( (joystickPos.y > 12) || (joystickPos.y < -12) ) ? joystickPos.y : (joystickPos = Math.sign(joystickPos.y)*1*12)}, 500);
+		
+		//createjs.Tween.removeTweens(this.mesh.position);
+		/*createjs.Tween.get(this.mesh.position, {override: true})
+          .to({x: !( (this.mesh.position.x > 20) || (this.mesh.position.x < -20) ) ? joystickPos.x : this.mesh.position.x, y: !( (this.mesh.position.y > 12) || (this.mesh.position.y < -12) ) ? joystickPos.y : this.mesh.position.y }, 500);*/
+
+		/*if( !( (this.mesh.position.x  > 20) || (this.mesh.position.x  < -20)))
 		{
-			TweenMax.to(this.mesh.position, 1, {y: posY});
+			//TweenMax.to(this.mesh.position, 1, {x: joystickPos.x });
+			createjs.Tween.get(this.mesh.position)
+          .to({x: joystickPos.x }, 500);
 		}
+		else
+		{
+			createjs.Tween.get(this.mesh.position)
+          .to({x: Math.sign(joystickPos.x)*-0.5+this.mesh.position.x}, 500);
+		}
+		if( !( (this.mesh.position.y > 12) || (this.mesh.position.y < -12) ))
+		{
+			//TweenMax.to(this.mesh.position, 1, {y: joystickPos.y});
+			createjs.Tween.get(this.mesh.position)
+          .to({y: joystickPos.y}, 500);
+		}
+		else
+		{
+			createjs.Tween.get(this.mesh.position)
+          .to({y: Math.sign(joystickPos.y)*-0.5+this.mesh.position.y}, 500);
+		}*/
+
+
+		/*if( !( (joystickPos.x  > 20) || (joystickPos.x  < -20)))
+		{
+			createjs.Tween.get(this.mesh.position)
+          .to({x: joystickPos.x }, 500);
+		}
+		else
+		{
+			joystickPos.x = Math.sign(joystickPos.x)*1*20;
+			createjs.Tween.get(this.mesh.position)
+          .to({x: joystickPos.x }, 500);
+		}
+		if( !( (joystickPos.y > 12) || (joystickPos.y < -12) ))
+		{
+			createjs.Tween.get(this.mesh.position)
+          .to({y: joystickPos.y}, 500);
+		}
+		else
+		{
+			joystickPos.y = Math.sign(joystickPos.y)*1*12;
+			createjs.Tween.get(this.mesh.position)
+          .to({y: joystickPos.y}, 500);
+		}*/
+
 	}
 	else
 	{
-		TweenMax.to(this.mesh.position, 1, {x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y});
+		//TweenMax.to(this.mesh.position, 1, {x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y});
+		//createjs.Tween.removeTweens(this.mesh.position);
+		 createjs.Tween.get(this.mesh.position,{override:true})
+          .to({x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y}, 500);
+
 	}
 }
 
@@ -2096,6 +2171,78 @@ StarHolder.prototype.createStar = function(negative=false)
 	this.starsInUse.push(star);
 	this.mesh.add(star.mesh);
 }
+
+	/*
+		_ANIMATION
+	*/
+
+	GameAnimation = function()
+	{
+		this.deltaTime = 0;
+		this.newTime = new Date().getTime();
+		this.oldTime = new Date().getTime();
+
+		this.animations = [];
+	}
+
+	GameAnimation.prototype.update = function()
+	{
+		this.newTime = new Date().getTime();
+		this.deltaTime = this.newTime-this.oldTime;
+		this.oldTime = this.newTime;
+
+		for(var i=0; i<this.animations.length; i++)
+		{
+			var animation = this.animations[i];
+			animation.update();
+		}
+	}
+
+	GameAnimation.prototype.Tween = function(object, args, duration)
+	{
+		this.animations.push(new Animation(object, args, duration, this));
+	}
+
+	Animation = function(object, args, duration, gAnimation)
+	{
+		this.object = object;
+		this.args = args;
+		this.duration = duration;
+		this.currentTime = 0;
+		this.step = {};
+		this.gAnimation = gAnimation;
+
+		this.init();
+	}
+
+	Animation.prototype.init = function()
+	{
+		for(var arg in this.args)
+		{
+			this.step[arg] = (this.args[arg]/(this.duration/100))/6;
+		}
+	}
+
+	Animation.prototype.update = function()
+	{
+		if(Math.floor(this.currentTime/100) <= (this.duration/100))
+		{
+			for(var arg in this.args)
+			{
+				if(this.object[arg] <= this.args[arg])
+				{
+					this.object[arg] += this.step[arg];
+				}
+			}
+		}
+		else
+		{
+			this.gAnimation.animations.splice(this.gAnimation.animations.indexOf(this), 1);
+			delete this;
+		}
+		console.log(Math.floor(this.currentTime/100))
+		this.currentTime += this.gAnimation.deltaTime;
+	}
 
 	/*
 		_COLLISIONS
@@ -2266,7 +2413,10 @@ function loop()
 // _INITIALIZATION //
 
 var game;
-
+var gAnimation = new GameAnimation();
+ var stage = new createjs.Stage("demoTween");
+ createjs.Ticker.setFPS(60);
+        createjs.Ticker.addEventListener("tick", stage);
 function init()
 {
 	game = new Game();
