@@ -42,6 +42,10 @@ Game.prototype.initVariables = function()
 	this.gScore = new GameScore(this.gAudio);
 
 	this.gDOM = new GameDOM(this);
+
+	this.stage = new createjs.Stage("gameTween");
+ 	createjs.Ticker.setFPS(60);
+    createjs.Ticker.addEventListener("tick", this.stage);
 	
 	this.speedLastUpdate = 0;
 
@@ -101,11 +105,27 @@ Game.prototype.updateObjects = function()
 	this.gDOM.updateScore();
 
 	this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x, this.starsHolder.starsInUse[0].mesh.position.y + 5, 15));
-	TweenMax.to(this.planetHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.2, y: 125-(this.starsHolder.starsInUse[0].mesh.position.y*0.2)});
-	TweenMax.to(this.wallsHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.5, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.5)});
-	TweenMax.to(this.cometsHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.2, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.2)});
-	TweenMax.to(this.portalsHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.2, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.2)});
-	TweenMax.to(this.particlesHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.5, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.5)});
+
+	var starPos = {
+		x: this.starsHolder.starsInUse[0].mesh.position.x,
+		y: this.starsHolder.starsInUse[0].mesh.position.y
+	};
+
+	createjs.Tween.get(this.planetHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.2, y: 125-(starPos.y*0.2)}, 250);
+
+	createjs.Tween.get(this.wallsHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+
+	createjs.Tween.get(this.cometsHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
+
+	createjs.Tween.get(this.portalsHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
+
+	createjs.Tween.get(this.particlesHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+
 
 	if(this.starsHolder.life <= 0)
 	{
@@ -325,8 +345,10 @@ Game.prototype.wait = function()
 	this.planetHolder.moveFragments();
 	this.cometsHolder.update();
 
-	TweenMax.to(this.camera.position, 3, {y: -10});
-	TweenMax.to(this.camera.rotation, 3, {x: 25*Math.PI/180});
+	createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: -10}, 3000);
+    createjs.Tween.get(this.camera.rotation, {override:true})
+        .to({x: 25*Math.PI/180}, 2500);
 }
 
 Game.prototype.start = function()
@@ -338,8 +360,10 @@ Game.prototype.start = function()
 
 	this.gDOM.gameContainer.style.cursor = 'none';
 
-	TweenMax.to(this.camera.position, 3, {y: 0});
-	TweenMax.to(this.camera.rotation, 3, {x: 0});
+	createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: 0}, 2500);
+    createjs.Tween.get(this.camera.rotation, {override:true})
+        .to({x: 0}, 2500);
 	
 
 	this.gAudio.audio.play();
@@ -355,18 +379,23 @@ Game.prototype.initStart = function()
 	this.gDOM.resetColors();
 
 	this.scene.add(this.starsHolder.starsInUse[0].mesh);
-	TweenMax.to(this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-																					TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-																					if(_this.starsHolder.starsInUse.length > 1)
-																					{
-																						var star = _this.starsHolder.starsInUse[1].mesh;
-																						_this.scene.add(_this.starsHolder.starsInUse[1].mesh);
-																						TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-																																									TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-																																								}});
 
-																					}
-																				}});
+	createjs.Tween.get(this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+    	.to({x: 1.5, y: 1.5, z: 1.5}, 1000)
+    	.call(function(){
+    		createjs.Tween.get(_this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+          		.to({x: 1, y: 1, z: 1}, 200);
+			if(_this.starsHolder.starsInUse.length > 1)
+			{
+				_this.scene.add(_this.starsHolder.starsInUse[1].mesh);
+				createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+          			.to({x: 0.1, y: 0.1, z: 0.1}, 200)
+          			.call(function(){
+          				createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+          					.to({x: 1, y: 1, z: 1}, 200);
+          		});
+			}
+    });
 
 	this.status = 'start';
 }
@@ -382,23 +411,27 @@ Game.prototype.end = function()
 	{
 		var _this = this;
 
-		TweenMax.to(this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 2, y: 2, z: 2, 
-					onComplete: function(){
-											TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, 
-														onComplete: function(){
-																				_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
-																				if(_this.starsHolder.starsInUse.length > 1)
-																				{
-																					TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 2, y: 2, z: 2, 
-																								onComplete: function(){
-																														TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, 
-																														onComplete: function(){
-																																				_this.scene.remove(_this.starsHolder.starsInUse[1].mesh);
-																																			}});
-																					}});
-																				}
-																			}});
-															}});
+		createjs.Tween.get(this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+          .to({x: 2, y: 2, z: 2}, 200)
+          .call(function(){
+          		createjs.Tween.get(_this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+          			.to({x: 0.1, y: 0.1, z: 0.1}, 200)
+          			.call(function(){
+          					_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
+							if(_this.starsHolder.starsInUse.length > 1)
+							{
+								createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+         							.to({x: 2, y: 2, z: 2}, 200)
+         							.call(function(){
+         								createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+          									.to({x: 0.1, y: 0.1, z: 0.1}, 200)
+          									.call(function(){
+          											_this.scene.remove(_this.starsHolder.starsInUse[1].mesh);
+          								});
+         						});
+							}
+          		});
+         });
 
 		this.gAudio.audio.pause();
 		this.particlesHolder.speed = 0.1;
@@ -414,8 +447,10 @@ Game.prototype.pause = function()
 		this.joystick.removeEvents();
 	}
 
-	TweenMax.to(this.camera.position, 3, {y: -10});
-	TweenMax.to(this.camera.rotation, 3, {x: 25*Math.PI/180});
+	createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: -10}, 2500);
+    createjs.Tween.get(this.camera.rotation, {override:true})
+        .to({x: 25*Math.PI/180}, 2500);
 
 	this.gAudio.audio.pause();
 
@@ -531,10 +566,13 @@ Game.prototype.handleMouseClick = function()
 	{
 		this.status = 'paused';
 	}
-		
-	TweenMax.to(this.blurPass.params.delta, 0.25, {x: 50, onComplete: function(){
-			TweenMax.to(_this.blurPass.params.delta, 0.25, {x:0});
-		}});
+
+	createjs.Tween.get(this.blurPass.params.delta, {override:true})
+        .to({x: 50}, 250)
+        .call(function(){
+			createjs.Tween.get(_this.blurPass.params.delta, {override:true})
+          		.to({x:0}, 250);
+	});
 
 }
 
@@ -1114,7 +1152,8 @@ WallsHolder.prototype.spawnWalls = function()
 
 		wall.mesh.lookAt(new THREE.Vector3( (Math.random()*(25+25)-25) , (Math.random()*(25+25)-25) , wall.mesh.position.z));
 
-		TweenMax.to(wall.mesh.scale, 1, {z: 250});
+		createjs.Tween.get(wall.mesh.scale, {override:true})
+        	.to({z: 250}, (1/this.speed)*1000);
 
 		this.mesh.add(wall.mesh);
 		this.wallsInUse.push(wall);
@@ -1133,7 +1172,8 @@ WallsHolder.prototype.update = function()
 
 		if(wall.mesh.position.z < 5 + this.speed*2 && wall.mesh.position.z > 5)
 		{
-			TweenMax.to(wall.mesh.scale, (1/this.speed)*0.2, {z: 0.1});
+			createjs.Tween.get(wall.mesh.scale, {override:true})
+         		.to({z: 0.1}, (1/this.speed)*0.2*100);
 		}
 		if(wall.mesh.position.z > 15)
 		{
@@ -1192,7 +1232,9 @@ Atmosphere.prototype.move = function(gAudio)
 	{
 		value += gAudio.magnitude*0.008;
 	}
-	TweenMax.to(this.mesh.scale, 0.25, {x: value, y: value, z: value});
+
+	createjs.Tween.get(this.mesh.scale, {override:true})
+          .to({x: value, y: value, z: value}, 100);
 }
 
 Planet = function(color)
@@ -1224,7 +1266,9 @@ Planet.prototype.move = function(gAudio)
 	{
 		value += gAudio.magnitude*0.008;
 	}
-	TweenMax.to(this.mesh.scale, 0.25, {x: 1/value, y: 1/value, z: 1/value});
+
+	createjs.Tween.get(this.mesh.scale, {override:true})
+    	.to({x: 1/value, y: 1/value, z: 1/value}, 100);
 }
 
 		/*
@@ -1497,7 +1541,8 @@ PortalsHolder.prototype.spawnPortals = function(spawnTime)
 
 	portal.mesh.scale.set(0.1, 0.1, 0.1);
 
-	TweenMax.to(portal.mesh.scale, 1, {x: 1.5, y: 1.5, z: 1.5});
+	createjs.Tween.get(portal.mesh.scale, {override:true})
+    	.to({x: 1.5, y: 1.5, z: 1.5}, 1000);
 
 	this.portalsInUse.push(portal);
 	this.portalsList.push(portal.collisionMesh);
@@ -1710,7 +1755,8 @@ CometsHolder.prototype.spawnComets = function(spawnTime)
 
 		comet.mesh.scale.set(0.1, 0.1, 0.1);
 
-		TweenMax.to(comet.mesh.scale, 1, {x: 1.5, y: 1.5, z: 1.5});
+		createjs.Tween.get(comet.mesh.scale, {override:true})
+    		.to({x: 1.5, y: 1.5, z: 1.5}, 1000);
 
 		this.mesh.add(comet.mesh);
 		this.cometsList.push(comet.collisionMesh);
@@ -1828,7 +1874,7 @@ Star = function(color)
 	this.mesh.add(this.core);
 }
 
-Star.prototype.move = function(mousePos, joystick)
+Star.prototype.move = function(mousePos, joystick, limit)
 {
 	for(var i=0; i<this.numRings; i++)
 	{
@@ -1842,21 +1888,17 @@ Star.prototype.move = function(mousePos, joystick)
 			x: this.mesh.position.x,
 			y: this.mesh.position.y
 		}
+
 		joystickPos.x = joystickPos.x + (!this.negative ? joystick.deltaX()*(0.05) : joystick.deltaX()*(-0.05));
 		joystickPos.y = joystickPos.y + (!this.negative ? joystick.deltaY()*(-0.05) : joystick.deltaY()*(0.05));
-		if( !( (joystickPos.x > 20) || (joystickPos.x < -20)))
-		{
-			TweenMax.to(this.mesh.position, 1, {x: joystickPos.x});
-		}
-		if( !( (joystickPos.y > 12) || (joystickPos.y < -12) ))
-		{
-			TweenMax.to(this.mesh.position, 1, {y: joystickPos.y});
-		}
 
+		createjs.Tween.get(this.mesh.position, {override: true})
+          .to({x: !( (joystickPos.x > limit.x) || (joystickPos.x < -limit.x) ) ? joystickPos.x : (joystickPos.x = Math.sign(joystickPos.x)*1*limit.x), y: !( (joystickPos.y > limit.y) || (joystickPos.y < -limit.y) ) ? joystickPos.y : (joystickPos = Math.sign(joystickPos.y)*1*limit.y)}, 500);
 	}
 	else
 	{
-		TweenMax.to(this.mesh.position, 1, {x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y});
+		createjs.Tween.get(this.mesh.position,{override:true})
+          .to({x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y}, 500);
 	}
 }
 
@@ -1866,6 +1908,10 @@ StarHolder = function()
 	this.starsInUse = [];
 	this.maxLife = 12;
 	this.life = this.maxLife;
+	this.limit = {
+		x: 20,
+		y: 12
+	};
 }
 
 StarHolder.prototype.update = function(mousePos, joystick)
@@ -1873,11 +1919,12 @@ StarHolder.prototype.update = function(mousePos, joystick)
 	for(var i=0; i<this.starsInUse.length; i++)
 	{
 		var star = this.starsInUse[i];
-		star.move(mousePos, joystick);
+		star.move(mousePos, joystick, this.limit);
 
 		if(this.starsInUse.length > 1 && !joystick._pressed && isMobile.any())
 		{
-			TweenMax.to(star.mesh.position, 0.5, {x: 0, y: 0});
+			createjs.Tween.get(star.mesh.position,{override:true})
+          		.to({x: 0, y: 0}, 50);
 		}
 	}
 }
@@ -1945,14 +1992,20 @@ GameCollision.prototype.update = function()
 							this.game.renderer.setClearColor(this.game.wallsHolder.color.clear.replace('0x', '#'));
 
 							this.game.portalsHolder.portalsList.splice(this.game.portalsHolder.portalsList.indexOf(collisionMesh), 1);
-							
-							TweenMax.to(portal.mesh.scale, 0.1, {x: 200, y: 200, z: 200, onComplete: function(){
+
+							createjs.Tween.get(portal.mesh.scale,{override:true})
+          						.to({x: 200, y: 200, z: 200}, 100)
+          						.call(function(){
 									_this.game.portalsHolder.mesh.remove(portal.mesh);
-									TweenMax.to(_this.game.blurPass.params.delta, 0.3, {x: 50, onComplete: function(){
-									TweenMax.to(_this.game.blurPass.params.delta, 0.3, {x:0});
-								}});
-							}});
-							 this.game.gScore.portalScoreUpdate();
+									createjs.Tween.get(_this.game.blurPass.params.delta,{override:true})
+        							  .to({x: 50}, 250)
+        							  .call(function(){
+										createjs.Tween.get(_this.game.blurPass.params.delta,{override:true})
+         								 .to({x:0}, 250);
+									});
+							});
+
+							this.game.gScore.portalScoreUpdate();
 							this.game.gDOM.resetColors();
 						}
 					}
@@ -1963,9 +2016,12 @@ GameCollision.prototype.update = function()
 						if ( wallsCollision.length > 0 && wallsCollision[0].distance < directionVector.length() )
 						{
 
-							TweenMax.to(star.mesh.scale, 0.1, {x: 2, y: 2, z: 2, onComplete: function(){
-								TweenMax.to(star.mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-							}});
+							 createjs.Tween.get(star.mesh.scale,{override:true})
+        					  .to({x: 2, y: 2, z: 2}, 100)
+        					  .call(function(){
+								createjs.Tween.get(star.mesh.scale,{override:true})
+          							.to({x: 1, y: 1, z: 1}, 200);
+							});
 
 							var wall = wallsCollision[0].object;
 							
@@ -1975,12 +2031,22 @@ GameCollision.prototype.update = function()
 	
 							this.game.wallsHolder.mesh.remove(wall);
 							this.game.scene.add(particleWall);
-							TweenMax.to(particleWall.material, 2, {size: 0., onUpdate: function(){particleWall.geometry.verticesNeedUpdate = true}, onComplete: function(){_this.game.scene.add(particleWall);}});
+
+							createjs.Tween.get(particleWall.material,{override:true})
+        					  .to({size: 0.}, 2000)
+        					  .call(function(){
+        					  	_this.game.scene.remove(particleWall);
+        					 })
+        					  .addEventListener('change', function(){
+        					  	particleWall.geometry.verticesNeedUpdate = true;
+        					  });
+
 						    for(var i=0; i<particleWall.geometry.vertices.length; i++)
 						    {
 						    	var point = particleWall.geometry.vertices[i];
 
-						    	TweenMax.to(point, 10, {x: Math.random()*(50+50)-50, y: Math.random()*(50+50)-50, z: Math.random()*(50+50)-50});
+						    	createjs.Tween.get(point, {override:true})
+         							.to({x: Math.random()*(50+50)-50, y: Math.random()*(50+50)-50, z: Math.random()*(50+50)-50}, 10000);
 						    }
 						    if(this.game.starsHolder.life > 0)
 						    {
@@ -2003,12 +2069,17 @@ GameCollision.prototype.update = function()
 							this.game.cometsHolder.cometsList.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1);
 
 							this.game.ambientLight.intensity = 0.8;
-							TweenMax.to(this.game.ambientLight, 0.5, {intensity: 0.6});
+							createjs.Tween.get(this.game.ambientLight, {override:true})
+         							.to({intensity: 0.6}, 500);
 
 							var starMesh = star.mesh;
-							TweenMax.to(starMesh.scale, 0.1, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-									TweenMax.to(starMesh.scale, 0.2, {x: 1, y: 1, z: 1});
-								}});
+
+							createjs.Tween.get(starMesh.scale, {override:true})
+         						.to({x: 0.1, y: 0.1, z: 0.1}, 100)
+         						.call(function(){
+									createjs.Tween.get(starMesh.scale, {override:true})
+         							.to({x: 1, y: 1, z: 1}, 200);
+							});
 
 							this.game.cometsHolder.mesh.remove(comet.mesh);
 							this.game.gScore.cometScoreUpdate();

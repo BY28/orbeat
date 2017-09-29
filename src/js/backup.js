@@ -473,8 +473,9 @@ Game.prototype.addParticles = function()
 {
 	this.particlesHolder = new ParticlesHolder();
 
-	this.particlesHolder.createParticles(0.4, true, 0.4, false, 0xffffff, true, 10, 50);
-	this.particlesHolder.createParticles(0.2, true, 0.6, false, 0xffffff, true, 10, 50);
+	/*this.particlesHolder.createParticles(0.4, true, 0.4, false, 0xffffff, true, 10, 50);
+	this.particlesHolder.createParticles(0.2, true, 0.6, false, 0xffffff, true, 10, 50);*/
+	this.particlesHolder.createParticles(0.2, true, 1, false, 0xffffff, true, 6, 60);
 
 	this.scene.add(this.particlesHolder.mesh);
 }
@@ -2326,7 +2327,11 @@ GameCollision.prototype.update = function()
 	
 							this.game.wallsHolder.mesh.remove(wall);
 							this.game.scene.add(particleWall);
-							TweenMax.to(particleWall.material, 2, {size: 0.1, onUpdate: function(){particleWall.geometry.verticesNeedUpdate = true}, onComplete: function(){_this.game.scene.remove(particleWall);}});
+							//TweenMax.to(particleWall.material, 2, {size: 0.1, onUpdate: function(){particleWall.geometry.verticesNeedUpdate = true}, onComplete: function(){_this.game.scene.remove(particleWall);}});
+
+							createjs.Tween.get(particleWall.material, {override:true})
+          						.to({size: 0.1}, 2000).call(function(){_this.game.scene.remove(particleWall);}).addEventListener('change', function(){particleWall.geometry.verticesNeedUpdate = true});
+
 						    for(var i=0; i<particleWall.geometry.vertices.length; i++)
 						    {
 						    	var point = particleWall.geometry.vertices[i];
