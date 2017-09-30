@@ -286,6 +286,11 @@ Game.prototype.resetVariables = function()
 	/* STARS */
 
 	this.starsHolder.life = this.starsHolder.maxLife;
+	for(var i=0; i<this.starsHolder.starsInUse.length; i++)
+	{
+		var star = this.starsHolder.starsInUse[i];
+		star.mesh.position.set(0, 0, 0);
+	}
 	
 	/* WALLS */
 
