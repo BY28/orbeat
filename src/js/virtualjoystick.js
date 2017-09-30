@@ -66,6 +66,29 @@ VirtualJoystick.prototype.destroy	= function()
 	}
 }
 
+VirtualJoystick.prototype.reset = function()
+{
+	this._baseEl.style.position	= "absolute"
+	this._baseEl.style.display	= "none"
+	this._stickEl.style.position	= "absolute"
+	this._stickEl.style.display	= "none"
+
+	this._pressed	= false;
+	this._touchIdx	= null;
+
+	this._stickX = this._baseX = 0;
+	this._stickY = this._baseY = 0;
+	
+	if(this._stationaryBase === true){
+		this._baseEl.style.display	= "";
+		this._baseEl.style.left		= (this._baseX - this._baseEl.width /2)+"px";
+		this._baseEl.style.top		= (this._baseY - this._baseEl.height/2)+"px";
+	}
+    
+	this._transform	= this._useCssTransform ? this._getTransformProperty() : false;
+	this._has3d	= this._check3D();
+}
+
 VirtualJoystick.prototype.removeEvents	= function()
 {
 	this._container.removeEventListener( 'touchstart'	, this._$onTouchStart	, false );

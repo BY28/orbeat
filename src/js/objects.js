@@ -52,9 +52,8 @@ Game.prototype.initVariables = function()
 	this.mousePos = {x:0, y:0}
 
 	this.joystick	= new VirtualJoystick({
-				container	: document.getElementById('joystickContainer'),
-				mouseSupport	: true,
-			});
+		container	: document.getElementById('joystickContainer')
+	});
 	
 	if(!isMobile.any())
 	{
@@ -131,6 +130,11 @@ Game.prototype.updateObjects = function()
 	{
 		this.status = 'finished';
 	}
+}
+
+Game.prototype.initJoystick = function()
+{
+
 }
 
 Game.prototype.spawnObjects = function()
@@ -234,7 +238,7 @@ Game.prototype.lights = function()
 		_GAME STATUS
 	*/
 
-	Game.prototype.resetVariables = function()
+Game.prototype.resetVariables = function()
 {
 
 	/* REMOVE REMAINING OBJECTS */
@@ -381,18 +385,18 @@ Game.prototype.initStart = function()
 	this.scene.add(this.starsHolder.starsInUse[0].mesh);
 
 	createjs.Tween.get(this.starsHolder.starsInUse[0].mesh.scale, {override:true})
-    	.to({x: 1.5, y: 1.5, z: 1.5}, 1000)
+    	.to({x: 1.5, y: 1.5, z: 1.5}, 200)
     	.call(function(){
     		createjs.Tween.get(_this.starsHolder.starsInUse[0].mesh.scale, {override:true})
-          		.to({x: 1, y: 1, z: 1}, 200);
+          		.to({x: 1, y: 1, z: 1}, 100);
 			if(_this.starsHolder.starsInUse.length > 1)
 			{
 				_this.scene.add(_this.starsHolder.starsInUse[1].mesh);
 				createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
-          			.to({x: 0.1, y: 0.1, z: 0.1}, 200)
+          			.to({x: 0.1, y: 0.1, z: 0.1}, 100)
           			.call(function(){
           				createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
-          					.to({x: 1, y: 1, z: 1}, 200);
+          					.to({x: 1, y: 1, z: 1}, 100);
           		});
 			}
     });
@@ -714,6 +718,8 @@ GameDOM.prototype.endEvent = function()
 	this.scores.walls.innerHTML = this.game.gScore.wallScore;
 	this.scores.total.innerHTML = this.game.gScore.score;
 
+	this.game.joystick.reset();
+
 	this.updateProgression();
 
 	var _this = this;
@@ -724,7 +730,7 @@ GameDOM.prototype.endEvent = function()
 		_this.game.status = "init";
 	});
 
-	this.scores.change.addEventListener('click', function(){ // IMPLEMENT CHANGE MUSIC
+	this.scores.change.addEventListener('click', function(){
 		_this.scores.div.style.display = 'none';
 		_this.progression.div.style.display = 'none';
 		_this.intro.div.style.display = 'block';
@@ -2075,10 +2081,10 @@ GameCollision.prototype.update = function()
 							var starMesh = star.mesh;
 
 							createjs.Tween.get(starMesh.scale, {override:true})
-         						.to({x: 0.1, y: 0.1, z: 0.1}, 100)
+         						.to({x: 0.1, y: 0.1, z: 0.1}, 50)
          						.call(function(){
 									createjs.Tween.get(starMesh.scale, {override:true})
-         							.to({x: 1, y: 1, z: 1}, 200);
+         							.to({x: 1, y: 1, z: 1}, 150);
 							});
 
 							this.game.cometsHolder.mesh.remove(comet.mesh);
