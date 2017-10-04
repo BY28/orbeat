@@ -44,6 +44,13 @@
 
 		ADD CREDIAT AT GAME END ( BOTTOM RIGHT )
 
+		USE SOUNDJS CORDOVA ?
+
+		USE WEBAUDIOJS <--
+		INFO IN sound._context (suspend(), resume(), currentTime) sound._duration
+
+		PHONE ONENDED FIX
+
 
 */
 
@@ -232,7 +239,7 @@ Game.prototype.start = function()
 	TweenMax.to(this.camera.rotation, 3, {x: 0});
 	
 
-	this.gAudio.audio.play();
+	//this.gAudio.audio.play();
 
 	this.status = 'playing';
 }
@@ -513,7 +520,8 @@ Game.prototype.addPlanet = function(colors)
 	this.planetHolder.createSatellites();
 	this.planetHolder.createFragments();
 
-	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
+	
+this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
 	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
 
 	this.scene.add(this.planetHolder.mesh);
@@ -916,13 +924,13 @@ GameAudio = function()
 
 GameAudio.prototype.setUp = function()
 {
-	this.audio = new Audio();
+	this.audio = new Audio;
 	this.audio.src = 'assets/sounds/monody.mp3';
 	this.audio.controls = false;
 	this.audio.loop = false;
 	this.audio.autoplay = false;
 
-	this.context = new AudioContext();
+	this.context = new AudioContext;
 	
 	this.analyser = this.context.createAnalyser();
 	this.analyser.fftSize = 1024;
@@ -932,8 +940,8 @@ GameAudio.prototype.setUp = function()
 
 	this.source = this.context.createMediaElementSource(this.audio);
 	
-	this.source.connect(this.analyser);
 	this.analyser.connect(this.context.destination);
+	this.source.connect(this.analyser);
 
 	this.audio.addEventListener("ended", function(){
    		
@@ -942,6 +950,16 @@ GameAudio.prototype.setUp = function()
    			game.status = 'finished';
 		}
 	
+	});
+	
+	this.data_array = new Uint8Array(this.analyser.frequencyBinCount);
+
+	this.webaudio	= new WebAudio();
+	this.sound	= this.webaudio.createSound();
+	var _this = this;
+	// load sound.wav and play it
+	this.sound.load('assets/sounds/monody.mp3', function(sound){
+		sound.loop(false).play();
 	});
 }
 
@@ -956,19 +974,21 @@ GameAudio.prototype.addObject = function(object, threshold, min, max)
 
 GameAudio.prototype.update = function()
 {
-	this.data_array = new Uint8Array(this.analyser.frequencyBinCount);
-	this.analyser.getByteFrequencyData(this.data_array);
+	/*this.analyser.getByteFrequencyData(this.data_array);
+	console.log(this.sound.amplitude(512))*/
+	//this.data_array = this.sound.frequencyData();
 }
 
 GameAudio.prototype.getMag = function(min, max)
 {
-	var total = 0;
+	/*var total = 0;
 	for(var i=min; i<max; i++)
 	{
-		total += this.data_array[i];
+		total += this.data_array[i]/4;
 	}
 
-	return total/(max-min+1);
+	return total/(max-min+1);*/
+	return this.sound.magnitude(min, max);
 }
 
 GameAudio.prototype.isBeat = function(magnitude, object)

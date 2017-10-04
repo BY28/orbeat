@@ -32,7 +32,6 @@ Game.prototype.initVariables = function()
 	this.container.appendChild(this.renderer.domElement);
 
 	this.gAudio = new GameAudio();
-	this.gAudio.setUp();
 
 	this.gColor = new GameColor();
 	this.gColor.setUp();
@@ -92,7 +91,6 @@ Game.prototype.createObjects = function()
 
 Game.prototype.updateObjects = function()
 {
-	this.gAudio.update();
 	this.particlesHolder.update();
 	this.wallsHolder.update();
 	this.planetHolder.update(this.gAudio);
@@ -144,19 +142,19 @@ Game.prototype.spawnObjects = function()
 		this.wallsHolder.spawnWalls();
 	}
 
-	if(Math.floor(this.gAudio.audio.currentTime)%10 == 0 && !this.gAudio.audio.paused && Math.floor(this.gAudio.audio.currentTime) > this.portalsHolder.portalLastSpawn)
+	if(Math.floor(this.gAudio.context.currentTime)%10 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.portalsHolder.portalLastSpawn)
 	{
-		this.portalsHolder.spawnPortals(Math.floor(this.gAudio.audio.currentTime));
+		this.portalsHolder.spawnPortals(Math.floor(this.gAudio.context.currentTime));
 	}
 
-	if(Math.floor(this.gAudio.audio.currentTime)%3 == 0 && !this.gAudio.audio.paused && Math.floor(this.gAudio.audio.currentTime) > this.cometsHolder.cometLastSpawn)
+	if(Math.floor(this.gAudio.context.currentTime)%3 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.cometsHolder.cometLastSpawn)
 	{
-		this.cometsHolder.spawnComets(Math.floor(this.gAudio.audio.currentTime));
+		this.cometsHolder.spawnComets(Math.floor(this.gAudio.context.currentTime));
 	}
 
-	if(Math.floor(this.gAudio.audio.currentTime)%15 == 0 && !this.gAudio.audio.paused && Math.floor(this.gAudio.audio.currentTime) > this.speedLastUpdate)
+	if(Math.floor(this.gAudio.context.currentTime)%15 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.speedLastUpdate)
 	{	
-		this.speedLastUpdate = Math.floor(this.gAudio.audio.currentTime);
+		this.speedLastUpdate = Math.floor(this.gAudio.context.currentTime);
 		
 		var decimal = Math.round( ((Math.round((this.wallsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
 		this.wallsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.1 : 0.2;
@@ -326,7 +324,6 @@ Game.prototype.resetVariables = function()
 
 	/* AUDIO */
 
-	this.gAudio.audio.currentTime = 0;
 }
 
 	/*
@@ -375,7 +372,10 @@ Game.prototype.start = function()
         .to({x: 0}, 2500);
 	
 
-	this.gAudio.audio.play();
+	if(this.gAudio.context.state == "suspended")
+    {
+    	this.gAudio.context.resume();
+    }
 
 	this.status = 'playing';
 }
@@ -442,7 +442,7 @@ Game.prototype.end = function()
           		});
          });
 
-		this.gAudio.audio.pause();
+		this.gAudio.context.suspend();
 		this.particlesHolder.speed = 0.1;
 		this.gDOM.endEvent();
 		this.status = 'waiting';
@@ -461,7 +461,7 @@ Game.prototype.pause = function()
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 25*Math.PI/180}, 2500);
 
-	this.gAudio.audio.pause();
+	this.gAudio.context.suspend();
 
 	this.gDOM.pauseEvent();
 
@@ -600,21 +600,21 @@ Game.prototype.handleMouseMove = function(event)
 	this.mousePos.y = pos.y;
 }
 
+Game.prototype.handleSoundEnd = function()
+{
+	if(this.status == 'playing')
+	{
+   		this.status = 'finished';
+	}
+}
+
+
 Game.prototype.events = function()
 {
 	var _this = this;
 	window.addEventListener('resize', function(){ _this.handleWindowResize(); });
 	window.addEventListener('click', function(){ _this.handleMouseClick(); });
 	document.addEventListener('mousemove', _this.handleMouseMove.bind(_this), false);
-
-	this.gAudio.audio.addEventListener("ended", function(){
-   		
-		if(_this.status == 'playing')
-		{
-   			_this.status = 'finished';
-		}
-	
-	});
 }
 
 /* _GLOBAL EVENTS */
@@ -690,7 +690,7 @@ GameDOM.prototype.updateProgression = function()
 	this.progression.text.style.color = this.game.planetHolder.color.clear.replace('0x', '#');
 	this.progression.rect.style.background = this.game.planetHolder.color.clear.replace('0x', '#');
 	
-	var p = Math.floor(100 * this.game.gAudio.audio.currentTime/this.game.gAudio.audio.duration);
+	var p = Math.floor(100 * this.game.gAudio.context.currentTime/this.game.gAudio.sound._duration);
 	this.progression.rect.style.width = p*0.1+'vw';
 	this.progression.percent.innerHTML = p+' %';
 }
@@ -702,11 +702,14 @@ GameDOM.prototype.introEvent = function()
 	for (var i = 0; i < this.intro.sounds.length; i++) 
 	{
    		this.intro.sounds[i].addEventListener('click', function(){ 
-   																		_this.game.gAudio.change(this); 
-   																		_this.intro.div.style.display = 'none';
-																		_this.game.status = "init";
-																		_this.score.div.style.display = 'block';
-   																		} , false);
+   																	if(!_this.game.gAudio.onLoad)
+   																	{
+   																		_this.game.gAudio.setSoundPath(this);
+   																		_this.game.gAudio.change(_this); 
+																		_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
+   																	}
+   																
+   																} , false);
 	}
 }
 
@@ -731,8 +734,13 @@ GameDOM.prototype.endEvent = function()
 	this.scores.replay.addEventListener('click', function(){
 		_this.scores.div.style.display = 'none';
 		_this.progression.div.style.display = 'none';
-		_this.score.div.style.display = 'block';
-		_this.game.status = "init";
+		//_this.score.div.style.display = 'block';
+		//_this.game.status = "init";
+		if(!_this.game.gAudio.onLoad)
+   		{
+   			_this.game.gAudio.change(_this); 
+			_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
+   		}
 	});
 
 	this.scores.change.addEventListener('click', function(){
@@ -766,7 +774,12 @@ GameDOM.prototype.pauseEvent = function()
 	this.pause.replay.addEventListener('click', function(){
 		_this.pause.div.style.display = 'none';
 		_this.gameContainer.style.opacity = 1;
-		_this.game.status = 'init';
+		//_this.game.status = 'init';
+		if(!_this.game.gAudio.onLoad)
+   		{
+   			_this.game.gAudio.change(_this); 
+			_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
+   		}
 	});
 
 	this.pause.change.addEventListener('click', function(){
@@ -805,7 +818,7 @@ GameScore = function(gAudio)
 
 GameScore.prototype.update = function()
 {
-	this.score = Math.max(0, Math.floor( (this.gAudio.audio.currentTime*10) + this.points));
+	this.score = Math.max(0, Math.floor( (this.gAudio.context.currentTime*10) + this.points));
 }
 
 
@@ -925,32 +938,8 @@ GameColor.prototype.setObjectColor = function(color, object)
 
 GameAudio = function()
 {
-	this.audio, this.context, this.analyser, this.source;
-}
-
-GameAudio.prototype.setUp = function()
-{
-	this.audio = new Audio();
-	/*this.audio.src = 'assets/sounds/monody.mp3';*/
-	this.audio.controls = false;
-	this.audio.loop = false;
-	this.audio.autoplay = false;
-
-	window.AudioContext = window.AudioContext||window.webkitAudioContext;
-	this.context = new AudioContext();
-	
-	this.analyser = this.context.createAnalyser();
-	this.analyser.fftSize = 1024;
-	this.analyser.minDecibels = -75;
-	this.analyser.maxDecibels = 10;
-	this.analyser.smoothingTimeConstant = 0.75;
-
-	this.source = this.context.createMediaElementSource(this.audio);
-	
-	this.analyser.connect(this.context.destination);
-	this.source.connect(this.analyser);
-
-	this.data_array = new Uint8Array(this.analyser.frequencyBinCount);
+	this.webaudio, this.sound, this.context;
+	this.soundPath, this.onLoad = false;
 }
 
 GameAudio.prototype.addObject = function(object, threshold, min, max)
@@ -963,19 +952,11 @@ GameAudio.prototype.addObject = function(object, threshold, min, max)
 }
 
 GameAudio.prototype.update = function()
-{
-	this.analyser.getByteFrequencyData(this.data_array);
-}
+{}
 
 GameAudio.prototype.getMag = function(min, max)
 {
-	var total = 0;
-	for(var i=min; i<max; i++)
-	{
-		total += this.data_array[i];
-	}
-
-	return total/(max-min+1);
+	return this.sound.magnitude(min, max);
 }
 
 GameAudio.prototype.isBeat = function(magnitude, object)
@@ -998,12 +979,44 @@ GameAudio.prototype.check = function(object)
 	return this.isBeat(this.magnitude, object);
 }
 
-GameAudio.prototype.change = function(item)
+GameAudio.prototype.change = function(gDOM)
 {
-	var src = item.getAttribute('data-sound');
-	this.audio.src = 'assets/sounds/'+src;
+	gDOM.game.status = 'loading';
+	
+	if(this.webaudio && this.sound)
+	{
+		this.webaudio.destroy();
+		this.sound.destroy();
+	}
+
+	this.webaudio	= new WebAudio();
+	this.sound	= this.webaudio.createSound();
+	this.context = this.sound._context;
+	this.context.suspend();
+
+	this.sound._source.onended = function(){
+		if(gDOM.game.status == 'playing')
+		{
+	   		gDOM.game.status = 'finished';
+		}
+	};
+
+	var _this = this;
+	// load sound.wav and play it
+	this.sound.load(this.soundPath, function(sound){
+		gDOM.game.status = 'init';
+		_this.onLoad = !_this.onLoad;
+   		gDOM.intro.div.style.display = 'none';
+		gDOM.score.div.style.display = 'block';
+		sound.loop(false).play();
+	});
 }
 
+GameAudio.prototype.setSoundPath = function(item)
+{
+	var src = item.getAttribute('data-sound');
+	this.soundPath = 'assets/sounds/'+src;
+}
 	/*
 		_PARTICLES
 	*/
@@ -2142,9 +2155,13 @@ Launcher.prototype.loop = function()
 	{
 		this.game.initStart();
 	}
-	else if(this.game.status = 'start')
+	else if(this.game.status == 'start')
 	{
 		this.game.start();
+	}
+	else if(this.game.status == 'loading')
+	{
+		// LOADING ANIMATION
 	}
 
 	this.game.render();
