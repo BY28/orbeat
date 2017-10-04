@@ -100,6 +100,7 @@ Game.prototype.updateObjects = function()
 	this.gCollision.update();
 	this.gScore.update();
 	this.gDOM.updateScore();
+	this.gAudio.update(this);
 
 	this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x, this.starsHolder.starsInUse[0].mesh.position.y + 5, 15));
 
@@ -600,15 +601,6 @@ Game.prototype.handleMouseMove = function(event)
 	this.mousePos.y = pos.y;
 }
 
-Game.prototype.handleSoundEnd = function()
-{
-	if(this.status == 'playing')
-	{
-   		this.status = 'finished';
-	}
-}
-
-
 Game.prototype.events = function()
 {
 	var _this = this;
@@ -734,8 +726,7 @@ GameDOM.prototype.endEvent = function()
 	this.scores.replay.addEventListener('click', function(){
 		_this.scores.div.style.display = 'none';
 		_this.progression.div.style.display = 'none';
-		//_this.score.div.style.display = 'block';
-		//_this.game.status = "init";
+
 		if(!_this.game.gAudio.onLoad)
    		{
    			_this.game.gAudio.change(_this); 
@@ -774,7 +765,7 @@ GameDOM.prototype.pauseEvent = function()
 	this.pause.replay.addEventListener('click', function(){
 		_this.pause.div.style.display = 'none';
 		_this.gameContainer.style.opacity = 1;
-		//_this.game.status = 'init';
+
 		if(!_this.game.gAudio.onLoad)
    		{
    			_this.game.gAudio.change(_this); 
@@ -951,8 +942,16 @@ GameAudio.prototype.addObject = function(object, threshold, min, max)
 	object.fMax = max;
 }
 
-GameAudio.prototype.update = function()
-{}
+GameAudio.prototype.update = function(game)
+{
+	if(this.context.currentTime >= this.sound._duration)
+	{
+		if(game.status == 'playing')
+		{
+	   		game.status = 'finished';
+		}
+	}
+}
 
 GameAudio.prototype.getMag = function(min, max)
 {
@@ -994,15 +993,8 @@ GameAudio.prototype.change = function(gDOM)
 	this.context = this.sound._context;
 	this.context.suspend();
 
-	this.sound._source.onended = function(){
-		if(gDOM.game.status == 'playing')
-		{
-	   		gDOM.game.status = 'finished';
-		}
-	};
-
 	var _this = this;
-	// load sound.wav and play it
+
 	this.sound.load(this.soundPath, function(sound){
 		gDOM.game.status = 'init';
 		_this.onLoad = !_this.onLoad;
@@ -2161,7 +2153,7 @@ Launcher.prototype.loop = function()
 	}
 	else if(this.game.status == 'loading')
 	{
-		// LOADING ANIMATION
+		/* LOADING ANIMATION */
 	}
 
 	this.game.render();
