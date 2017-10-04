@@ -46,11 +46,13 @@
 
 		USE SOUNDJS CORDOVA ?
 
-		USE WEBAUDIOJS <--
+		USE WEBAUDIOJS <-- USED
 		INFO IN sound._context (suspend(), resume(), currentTime) sound._duration
 
-		PHONE ONENDED FIX
+		PHONE ONENDED FIX -FIXED-
 
+		SET MAX PERCENT TO 100
+	
 
 */
 

@@ -682,7 +682,7 @@ GameDOM.prototype.updateProgression = function()
 	this.progression.text.style.color = this.game.planetHolder.color.clear.replace('0x', '#');
 	this.progression.rect.style.background = this.game.planetHolder.color.clear.replace('0x', '#');
 	
-	var p = Math.floor(100 * this.game.gAudio.context.currentTime/this.game.gAudio.sound._duration);
+	var p = Math.min(Math.floor(100 * this.game.gAudio.context.currentTime/this.game.gAudio.sound._duration), 100);
 	this.progression.rect.style.width = p*0.1+'vw';
 	this.progression.percent.innerHTML = p+' %';
 }
