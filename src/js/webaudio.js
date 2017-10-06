@@ -81,6 +81,7 @@ WebAudio.fn	= WebAudio.prototype;
 */
 WebAudio.prototype.destroy	= function(){
 	this._pageVisibilityDtor();
+	this._ctx.close();
 };
 
 /**
@@ -443,11 +444,15 @@ WebAudio.Sound.create	= function(webaudio, nodeChain){
  * destructor
 */
 WebAudio.Sound.prototype.destroy	= function(){
-	// disconnect from this._webaudio
-	this._chain.last().disconnect();
-	// destroy this._chain
-	this._chain.destroy();
-	this._chain	= null;
+	if(this._chain != null)
+	{
+
+		// disconnect from this._webaudio
+		this._chain.last().disconnect();
+		// destroy this._chain
+		this._chain.destroy();
+		this._chain	= null;
+	}	
 };
 
 /**

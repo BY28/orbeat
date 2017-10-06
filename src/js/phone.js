@@ -1037,7 +1037,7 @@ GameAudio.prototype.change = function(gDOM)
 {
 	gDOM.game.status = 'loading';
 	
-	if(this.webaudio && this.sound)
+	if(this.webaudio != null && this.sound != null)
 	{
 		this.webaudio.destroy();
 		this.sound.destroy();
