@@ -51,13 +51,17 @@
 
 		PHONE ONENDED FIX -FIXED-
 
-		SET MAX PERCENT TO 100
+		SET MAX PERCENT TO 100 -DONE-
+
+		TRY TO ADD SHADER PLANE IN BACKGROUND 											<----------
+ 		ONCLICK:REMOVE OBJECTS > SHOW LOADER > ADD OBJECTS > PLAY SOUND/BEGIN GAME     	<----------
 	
 
 */
 
 
-// _GAME //
+
+/* _GAME */
 
 Game = function()
 {
@@ -79,49 +83,250 @@ Game.prototype.initVariables = function()
 	this.nearPlane = 0.1;
 	this.farPlane = 500;
 	
-	/*Physijs.scripts.worker = 'src/js/physics/physijs_worker.js';
-	Physijs.scripts.ammo = 'ammo.js';*/
-	
 	this.scene = new THREE.Scene();
 	this.camera = new THREE.PerspectiveCamera(this.fieldOfView, this.aspectRatio, this.nearPlane, this.farPlane);
 	this.renderer = new THREE.WebGLRenderer();
 	this.container = document.getElementById('webglContainer');
 
-	//this.scene.setGravity(new THREE.Vector3(0, 0, 0));
 	this.camera.position.z = 15;
 	this.renderer.setSize(this.WIDTH, this.HEIGHT);
 	this.renderer.setPixelRatio(window.devicePixelRatio);
-	this.renderer.setClearColor(0x3498db);
-	this.renderer.shadowMap.enabled = true;
 	this.container.appendChild(this.renderer.domElement);
 
 	this.gAudio = new GameAudio();
-	this.gAudio.setUp();
 
 	this.gColor = new GameColor();
 	this.gColor.setUp();
+
+	this.gCollision = new GameCollision(this);
 
 	this.gScore = new GameScore(this.gAudio);
 
 	this.gDOM = new GameDOM(this);
 
-	this.keyboard = new THREEx.KeyboardState();
+	this.stage = new createjs.Stage("gameTween");
+ 	createjs.Ticker.setFPS(60);
+    createjs.Ticker.addEventListener("tick", this.stage);
+	
+	this.speedLastUpdate = 0;
+
+	this.mousePos = {x:0, y:0}
 
 	this.joystick	= new VirtualJoystick({
-				container	: document.getElementById('joystickContainer'),
-				mouseSupport	: true,
-			});
-
+		container	: document.getElementById('joystickContainer')
+	});
+	
 	if(!isMobile.any())
 	{
 		this.joystick.removeEvents();
 	}
 
-	this.speedLastUpdate = 0;
+	this.worldColor = this.gColor.colors.darkBlue;
+	this.objectsColor = this.gColor.colors.white;
 
+	this.renderer.setClearColor(this.worldColor.clear.replace('0x', '#'));
+	
 	this.postprocessing();
 	this.lights();
+	this.events();
 }
+
+	/*
+		_FUNCTIONS
+	*/
+
+Game.prototype.removeObjects = function()
+{
+	this.scene.remove(this.planetHolder.mesh);
+	this.scene.remove(this.wallsHolder.mesh);
+	this.scene.remove(this.portalsHolder.mesh);
+	this.scene.remove(this.cometsHolder.mesh);
+	for(var i=0; i<this.starsHolder.starsInUse.length; i++)
+	{
+		var star = this.starsHolder.starsInUse[i];
+		this.scene.remove(star.mesh);
+	}
+}
+
+Game.prototype.resetObjects = function()
+{
+	this.scene.add(this.planetHolder.mesh);
+	this.scene.add(this.wallsHolder.mesh);
+	this.scene.add(this.portalsHolder.mesh);
+	this.scene.add(this.cometsHolder.mesh);
+	this.scene.add(this.cometsHolder.mesh);
+	var _this = this;
+	createjs.Tween.get(this.blurPass.params.delta, {override:true})
+        .to({x: 50}, 250)
+        .call(function(){
+			createjs.Tween.get(_this.blurPass.params.delta, {override:true})
+          		.to({x:0}, 250);
+	});
+}
+
+Game.prototype.update = function()
+{
+	this.updateObjects();
+	this.spawnObjects();
+}
+
+Game.prototype.createObjects = function()
+{
+	this.addParticles();
+	this.addWalls();
+	this.addPlanet();
+	this.addPortals();
+	this.addComets();
+	this.addStars();
+}
+
+Game.prototype.updateObjects = function()
+{
+	this.particlesHolder.update();
+	this.wallsHolder.update();
+	this.planetHolder.update(this.gAudio);
+	this.portalsHolder.update();
+	this.cometsHolder.update();
+	this.starsHolder.update(this.mousePos, this.joystick);
+	this.gCollision.update();
+	this.gScore.update();
+	this.gDOM.updateScore();
+	this.gAudio.update(this);
+
+	this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x, this.starsHolder.starsInUse[0].mesh.position.y + 5, 15));
+
+	var starPos = {
+		x: this.starsHolder.starsInUse[0].mesh.position.x,
+		y: this.starsHolder.starsInUse[0].mesh.position.y
+	};
+
+	createjs.Tween.get(this.planetHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.2, y: 125-(starPos.y*0.2)}, 250);
+
+	createjs.Tween.get(this.wallsHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+
+	createjs.Tween.get(this.cometsHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
+
+	createjs.Tween.get(this.portalsHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
+
+	createjs.Tween.get(this.particlesHolder.mesh.position, {override:true})
+        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+
+
+	if(this.starsHolder.life <= 0)
+	{
+		this.status = 'finished';
+	}
+}
+
+Game.prototype.initJoystick = function()
+{
+
+}
+
+Game.prototype.spawnObjects = function()
+{
+	if(this.gAudio.check(this.wallsHolder))
+	{
+		this.wallsHolder.spawnWalls();
+	}
+
+	if(Math.floor(this.gAudio.context.currentTime)%10 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.portalsHolder.portalLastSpawn)
+	{
+		this.portalsHolder.spawnPortals(Math.floor(this.gAudio.context.currentTime));
+	}
+
+	if(Math.floor(this.gAudio.context.currentTime)%3 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.cometsHolder.cometLastSpawn)
+	{
+		this.cometsHolder.spawnComets(Math.floor(this.gAudio.context.currentTime));
+	}
+
+	if(Math.floor(this.gAudio.context.currentTime)%15 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.speedLastUpdate)
+	{	
+		this.speedLastUpdate = Math.floor(this.gAudio.context.currentTime);
+		
+		var decimal = Math.round( ((Math.round((this.wallsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
+		this.wallsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.1 : 0.2;
+
+		this.particlesHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.05 : 0.1;
+
+		var decimal = Math.round( ((Math.round((this.portalsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
+		this.portalsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.05 : 0.1;
+
+		var decimal = Math.round( ((Math.round((this.cometsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
+		this.cometsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.05 : 0.1;
+
+	}
+}
+
+Game.prototype.render = function()
+{
+	this.composer.reset();
+	this.composer.render( this.scene, this.camera );
+	this.composer.pass( this.noisePass );
+	this.composer.pass( this.blurPass );
+	this.composer.pass( this.fxaaPass );
+	this.composer.pass( this.vignettePass );
+	this.composer.toScreen();
+}
+
+	  /*
+		_GAME ATMOSPHERE
+	  */
+
+		/*
+			_POSTPROCESSING
+		*/
+
+Game.prototype.postprocessing = function()
+{
+	WAGNER.vertexShadersPath = 'src/js/postprocessing/vertex-shaders';
+	WAGNER.fragmentShadersPath = 'src/js/postprocessing/fragment-shaders';
+
+	this.composer = new WAGNER.Composer(this.renderer);
+	this.composer.setSize(this.WIDTH, this.HEIGHT);
+
+
+	this.noisePass = new WAGNER.NoisePass();
+	this.noisePass.params.amount = 0.02;
+	this.noisePass.params.speed = 0.4;
+
+	this.blurPass = new WAGNER.BoxBlurPass();
+
+	this.fxaaPass = new WAGNER.FXAAPass();
+
+	this.vignettePass = new WAGNER.VignettePass();
+
+	this.vignettePass.params.amount = 0.4;
+	this.vignettePass.params.falloff = 0.2;
+}
+
+
+			/*
+				_LIGHTS
+			*/
+
+Game.prototype.lights = function()
+{
+	this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+	this.scene.add(this.ambientLight);
+
+	this.pointLight = new THREE.PointLight(0xffffff, 0.8, 500);
+	this.pointLight.position.set(0, 2, 0);
+	this.scene.add(this.pointLight);
+
+	this.pLight = this.pointLight.clone();
+	this.pLight.intensity = 0.6;
+	this.pLight.position.set(0, -175, 0);
+	this.scene.add(this.pLight)
+}
+
+	/*
+		_GAME STATUS
+	*/
 
 Game.prototype.resetVariables = function()
 {
@@ -167,6 +372,15 @@ Game.prototype.resetVariables = function()
 	/* GLOBAL */
 
 	this.speedLastUpdate = 0;
+
+	/* STARS */
+
+	this.starsHolder.life = this.starsHolder.maxLife;
+	for(var i=0; i<this.starsHolder.starsInUse.length; i++)
+	{
+		var star = this.starsHolder.starsInUse[i];
+		star.mesh.position.set(0, 0, 0);
+	}
 	
 	/* WALLS */
 
@@ -176,12 +390,12 @@ Game.prototype.resetVariables = function()
 	/* PORTALS */
 
 	this.portalsHolder.portalLastSpawn = 0;
-	this.portalsHolder.speed = 0.2;
+	this.portalsHolder.speed = 0.4;
 
 	/* COMETS */
 
 	this.cometsHolder.cometLastSpawn = 0;
-	this.cometsHolder.speed = 0.3;
+	this.cometsHolder.speed = 0.6;
 
 	/* PARTICLES */
 
@@ -192,27 +406,38 @@ Game.prototype.resetVariables = function()
 	this.gScore.portalScore = 0;
 	this.gScore.cometScore = 0;
 	this.gScore.wallScore = 0;
+	this.gScore.points = 0;
 	this.gScore.score = 0;
 
 	/* DOM */
 
 	this.gDOM.score.points.innerHTML = 0;
+	this.gDOM.score.life.style.width = '10vw';
+
+	/* AUDIO */
+
 }
 
 	/*
 		_FUNCTIONS
 	*/
 
+Game.prototype.load = function()
+{
+	this.gDOM.loadEvent();
+	this.removeObjects();
+}
+
 Game.prototype.wait = function()
 {
-	// Wait for start/restart
 	if(isMobile.any())
 	{	
 		this.joystick.removeEvents();
 	}
+
 	this.gDOM.introEvent();
+
 	this.particlesHolder.update();
-	this.starsHolder.update(this.joystick);
 
 	this.planetHolder.planet.mesh.rotation.y += 0.0005;
 	this.planetHolder.planet.mesh.rotation.z += 0.005;
@@ -224,50 +449,62 @@ Game.prototype.wait = function()
 	this.planetHolder.moveFragments();
 	this.cometsHolder.update();
 
-	TweenMax.to(this.camera.position, 3, {y: -10});
-	TweenMax.to(this.camera.rotation, 3, {x: 25*Math.PI/180});
+	createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: -10}, 3000);
+    createjs.Tween.get(this.camera.rotation, {override:true})
+        .to({x: 25*Math.PI/180}, 2500);
 }
 
 Game.prototype.start = function()
 {
 	if(isMobile.any())
-	{		
+	{	
 		this.joystick.addEvents();
 	}
-	
+
 	this.gDOM.gameContainer.style.cursor = 'none';
-	// Begin game
-	TweenMax.to(this.camera.position, 3, {y: 0});
-	TweenMax.to(this.camera.rotation, 3, {x: 0});
+
+	createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: 0}, 2500);
+    createjs.Tween.get(this.camera.rotation, {override:true})
+        .to({x: 0}, 2500);
 	
 
-	//this.gAudio.audio.play();
+	if(this.gAudio.context.state == "suspended")
+    {
+    	this.gAudio.context.resume();
+    }
 
 	this.status = 'playing';
 }
 
 Game.prototype.initStart = function()
 {
-	// Reset variables
 	var _this = this;	
 
-	this.gAudio.audio.currentTime = 0;
 	this.resetVariables();
+	this.resetObjects();
+	this.gDOM.startEvent();
+	this.gDOM.resetColors();
 
-	var star = this.starsHolder.starsInUse[0].mesh;
-	this.scene.add(star);
-	TweenMax.to(star.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-																					TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-																					if(_this.starsHolder.starsInUse.length > 1)
-																					{
-																						var star = _this.starsHolder.starsInUse[1].mesh;
-																						_this.scene.add(star);
-																						TweenMax.to(star.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-																																									TweenMax.to(star.scale, 0.2, {x: 1, y: 1, z: 1});
-																																								}});
+	this.scene.add(this.starsHolder.starsInUse[0].mesh);
 
-																					}
-																				}});
+	createjs.Tween.get(this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+    	.to({x: 1.5, y: 1.5, z: 1.5}, 200)
+    	.call(function(){
+    		createjs.Tween.get(_this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+          		.to({x: 1, y: 1, z: 1}, 100);
+			if(_this.starsHolder.starsInUse.length > 1)
+			{
+				_this.scene.add(_this.starsHolder.starsInUse[1].mesh);
+				createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+          			.to({x: 0.1, y: 0.1, z: 0.1}, 100)
+          			.call(function(){
+          				createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+          					.to({x: 1, y: 1, z: 1}, 100);
+          		});
+			}
+    });
 
 	this.status = 'start';
 }
@@ -277,52 +514,35 @@ Game.prototype.end = function()
 
 	if(this.wallsHolder.wallsInUse.length || this.portalsHolder.portalsInUse.length || this.cometsHolder.cometsInUse.length)
 	{
-		this.wallsHolder.update();
-		this.gCollision.update(this.renderer, this.planetHolder, this.gColor, this.blurPass);
-		this.particlesHolder.update();
-		this.planetHolder.atmosphere.move(this.gAudio);
-		this.planetHolder.planet.move(this.gAudio);
-
-		this.planetHolder.planet.mesh.rotation.y += 0.0005;
-		this.planetHolder.planet.mesh.rotation.z += 0.005;
-
-		this.planetHolder.atmosphere.mesh.rotation.x += 0.0005;
-		this.planetHolder.atmosphere.mesh.rotation.y += 0.0005;
-
-		this.planetHolder.rotateSatellites();
-		this.planetHolder.moveFragments();
-		this.cometsHolder.update();
-		//this.spaceship.move(mousePos);
-		this.starsHolder.update(this.joystick);
-		this.portalsHolder.update();
+		this.updateObjects();
 	}
 	else
 	{
 		var _this = this;
-		TweenMax.to(this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 2, y: 2, z: 2, onComplete: function(){
-																												TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-																																																								_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
-																																																							}});
-																											}});
-		TweenMax.to(this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 2, y: 2, z: 2, onComplete: function(){
-																						TweenMax.to(_this.starsHolder.starsInUse[0].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, 
-																									onComplete: function(){
-																															_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
-																													
-																															if(_this.starsHolder.starsInUse.length > 1)
-																															{
-																																TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 2, y: 2, z: 2, 
-																																			onComplete: function(){
-																																									TweenMax.to(_this.starsHolder.starsInUse[1].mesh.scale, 0.2, {x: 0.1, y: 0.1, z: 0.1, 
-																																									onComplete: function(){
-																																															_this.scene.remove(_this.starsHolder.starsInUse[1].mesh);
-																																														}});
-																																}});
 
-																															}
-																														}});
-																						
-																										}});
+		createjs.Tween.get(this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+          .to({x: 2, y: 2, z: 2}, 200)
+          .call(function(){
+          		createjs.Tween.get(_this.starsHolder.starsInUse[0].mesh.scale, {override:true})
+          			.to({x: 0.1, y: 0.1, z: 0.1}, 200)
+          			.call(function(){
+          					_this.scene.remove(_this.starsHolder.starsInUse[0].mesh);
+							if(_this.starsHolder.starsInUse.length > 1)
+							{
+								createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+         							.to({x: 2, y: 2, z: 2}, 200)
+         							.call(function(){
+         								createjs.Tween.get(_this.starsHolder.starsInUse[1].mesh.scale, {override:true})
+          									.to({x: 0.1, y: 0.1, z: 0.1}, 200)
+          									.call(function(){
+          											_this.scene.remove(_this.starsHolder.starsInUse[1].mesh);
+          								});
+         						});
+							}
+          		});
+         });
+
+		this.gAudio.context.suspend();
 		this.particlesHolder.speed = 0.1;
 		this.gDOM.endEvent();
 		this.status = 'waiting';
@@ -331,149 +551,21 @@ Game.prototype.end = function()
 
 Game.prototype.pause = function()
 {
-	// Pause animation, show controls stop update, glitch postprocessing?
 	if(isMobile.any())
-	{
+	{	
 		this.joystick.removeEvents();
 	}
 
-	TweenMax.to(this.camera.position, 3, {y: -10});
-	TweenMax.to(this.camera.rotation, 3, {x: 25*Math.PI/180});
+	createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: -10}, 2500);
+    createjs.Tween.get(this.camera.rotation, {override:true})
+        .to({x: 25*Math.PI/180}, 2500);
 
-	this.gAudio.audio.pause();
+	this.gAudio.context.suspend();
 
 	this.gDOM.pauseEvent();
 
 	this.status = 'paused';
-}
-
-Game.prototype.update = function()
-{
-	/*this.newTime = new Date().getTime();
-	this.deltaTime = this.newTime-this.oldTime;
-	this.oldTime = this.newTime;*/
-
-	//this.scene.simulate();
-	
-	//console.log(this.gAudio.audio.duration);
-	//console.log(this.gAudio.audio.currentTime);
-	this.gCollision.update(this.renderer, this.planetHolder, this.gColor, this.blurPass);
-	this.gAudio.update();
-	this.gScore.update();
-	this.particlesHolder.update();
-	this.wallsHolder.update();
-
-	this.planetHolder.atmosphere.move(this.gAudio);
-	this.planetHolder.planet.move(this.gAudio);
-
-	this.planetHolder.planet.mesh.rotation.y += 0.0005;
-	this.planetHolder.planet.mesh.rotation.z += 0.005;
-
-	this.planetHolder.atmosphere.mesh.rotation.x += 0.0005;
-	this.planetHolder.atmosphere.mesh.rotation.y += 0.0005;
-
-	this.planetHolder.rotateSatellites();
-	this.planetHolder.moveFragments();
-	this.cometsHolder.update();
-	//this.spaceship.move(mousePos);
-	this.starsHolder.update(this.joystick);
-	this.portalsHolder.update();
-	
-
-	if(this.gAudio.check(this.wallsHolder))
-	{
-		this.wallsHolder.spawnWalls();
-	}
-	
-
-
-	if(Math.floor(this.gAudio.audio.currentTime)%10 == 0 && !this.gAudio.audio.paused && Math.floor(this.gAudio.audio.currentTime) > this.portalsHolder.portalLastSpawn)
-	{
-		// initial speed 0.4 add 0.005 every seconds
-		this.portalsHolder.spawnPortals(Math.floor(this.gAudio.audio.currentTime));
-
-		/*var _this = this;
-
-		TweenMax.to(this.blurPass.params.delta, 0.25, {x: 50, onComplete: function(){
-				TweenMax.to(_this.blurPass.params.delta, 0.25, {x:0});
-			}});
-		
-		this.wallsHolder.resetColor(this.gColor);
-		this.planetHolder.resetColor(this.gColor, this.cometsHolder, this.portalsHolder);
-
-		this.starsHolder.resetColor(this.gColor, this.planetHolder.clearColor)
-
-		this.renderer.setClearColor(this.wallsHolder.clearColor.replace('0x', '#'));*/
-	}
-
-	
-
-	if(Math.floor(this.gAudio.audio.currentTime)%4 == 0 && !this.gAudio.audio.paused && Math.floor(this.gAudio.audio.currentTime) > this.cometsHolder.cometLastSpawn)
-	{
-		// spawn Comet every 8 seconds and do or add something...
-		this.cometsHolder.spawnComets(Math.floor(this.gAudio.audio.currentTime));
-	}
-
-	
-	if(Math.floor(this.gAudio.audio.currentTime)%15 == 0 && !this.gAudio.audio.paused && Math.floor(this.gAudio.audio.currentTime) > this.speedLastUpdate)
-	{	
-		this.speedLastUpdate = Math.floor(this.gAudio.audio.currentTime);
-		
-		var decimal = Math.round( ((Math.round((this.wallsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
-		this.wallsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.1 : 0.2;
-
-		this.particlesHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.05 : 0.1;
-
-		var decimal = Math.round( ((Math.round((this.portalsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
-		this.portalsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.05 : 0.1;
-
-		var decimal = Math.round( ((Math.round((this.cometsHolder.speed+0.1)*10)/10)%1) * 10 ) / 10;
-		this.cometsHolder.speed += !( decimal==0 || decimal == 0.7 || decimal == 0.5  ) ? 0.05 : 0.1;
-
-	}
-
-	this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x*2, this.starsHolder.starsInUse[0].mesh.position.y + 5, 15));
-	//this.directionalLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x*2, -50, 0));
-	TweenMax.to(this.planetHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.2, y: 125-(this.starsHolder.starsInUse[0].mesh.position.y*0.2)});
-	TweenMax.to(this.wallsHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.5, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.5)});
-	TweenMax.to(this.cometsHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.2, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.2)});
-	TweenMax.to(this.portalsHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.2, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.2)});
-	TweenMax.to(this.particlesHolder.mesh.position, 0.5, {x: -this.starsHolder.starsInUse[0].mesh.position.x*0.5, y: -(this.starsHolder.starsInUse[0].mesh.position.y*0.5)});
-	/*	USE TWEEN.JS
-		var tween = new TWEEN.Tween( this.starsHolder.starsInUse[0].mesh.position )
-						.to( {x: mousePos.x, y: mousePos.y} , 500 )
-						.repeat( Infinity )
-						.onUpdate( function() {
-							console.log("works")
-						})
-						.start();
-	*/
-	this.gDOM.updateScore();
-	gAnimation.update();
-}
-
-Game.prototype.render = function()
-{
-	this.composer.reset();
-	this.composer.render( this.scene, this.camera );
-	this.composer.pass( this.noisePass );
-	this.composer.pass( this.blurPass );
-	this.composer.pass( this.fxaaPass );
-	this.composer.pass( this.vignettePass );
-	this.composer.toScreen();
-}
-
-Game.prototype.createObjects = function()
-{
-	var colors = this.gColor.colors;
-
-	this.addParticles();
-	this.addWalls(colors);
-	this.addPlanet(colors);
-	this.addPortals(colors);
-	this.addComets(colors);
-	//this.addSpaceShip();
-	this.addStars();
 }
 
 	/*
@@ -484,23 +576,20 @@ Game.prototype.addParticles = function()
 {
 	this.particlesHolder = new ParticlesHolder();
 
-	/*this.particlesHolder.createParticles(0.4, true, 0.4, false, 0xffffff, true, 10, 50);
-	this.particlesHolder.createParticles(0.2, true, 0.6, false, 0xffffff, true, 10, 50);*/
 	this.particlesHolder.createParticles(0.2, true, 1, false, 0xffffff, true, 6, 60);
 
 	this.scene.add(this.particlesHolder.mesh);
 }
 
-Game.prototype.addWalls = function(colors)
+Game.prototype.addWalls = function()
 {
 	this.wallsHolder = new WallsHolder();
 
-	this.wallsHolder.clearColor = colors.blue.clear;
-	this.wallsHolder.darkColor = colors.blue.dark;
+	this.wallsHolder.color = this.worldColor;
 
-	for(var i=0; i<10; i++)
+	for(var i=0; i<6; i++)
 	{
-		var wall = new Wall(this.wallsHolder.clearColor, this.wallsHolder.darkColor);
+		var wall = new Wall(this.wallsHolder.color);
 		this.wallsHolder.wallsPool.push(wall);
 	}
 
@@ -508,12 +597,11 @@ Game.prototype.addWalls = function(colors)
 	this.scene.add(this.wallsHolder.mesh);
 }
 
-Game.prototype.addPlanet = function(colors)
+Game.prototype.addPlanet = function()
 {
 	this.planetHolder = new PlanetHolder();
 
-	this.planetHolder.clearColor = colors.white.clear;
-	this.planetHolder.darkColor = colors.white.dark;
+	this.planetHolder.color = this.objectsColor;
 
 	this.planetHolder.mesh.position.z = -175;
 	this.planetHolder.mesh.position.y = 125;
@@ -522,109 +610,48 @@ Game.prototype.addPlanet = function(colors)
 	this.planetHolder.createSatellites();
 	this.planetHolder.createFragments();
 
-	
-this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
+	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
 	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
 
 	this.scene.add(this.planetHolder.mesh);
 }
 
-Game.prototype.addPortals = function(colors)
+Game.prototype.addPortals = function()
 {
 	this.portalsHolder = new PortalsHolder();
 
-	this.portalsHolder.clearColor = colors.white.clear;
-	this.portalsHolder.darkColor = colors.white.dark;
+	this.portalsHolder.color = this.objectsColor;
 
 	this.scene.add(this.portalsHolder.mesh);
 }
 
-Game.prototype.addComets = function(colors)
+Game.prototype.addComets = function()
 {
 	this.cometsHolder = new CometsHolder();
 
-	this.cometsHolder.clearColor = colors.white.clear;
-	this.cometsHolder.darkColor = colors.white.dark;
+	this.cometsHolder.color = this.objectsColor;
 
-	for(var i=0; i<5; i++)
+	for(var i=0; i<6; i++)
 	{
-		var comet = new Comet(this.cometsHolder.clearColor, this.cometsHolder.darkColor);
+		var comet = new Comet(this.cometsHolder.color);
 		this.cometsHolder.cometsPool.push(comet);
 	}
 	this.scene.add(this.cometsHolder.mesh);
 }
 
-Game.prototype.addSpaceShip = function()
-{
-	this.spaceship = new SpaceShip();
-	this.scene.add(this.spaceship.mesh);
-}
-
 Game.prototype.addStars = function()
 {
 	this.starsHolder = new StarHolder();
-	this.starsHolder.createStar();
-	//this.starsHolder.createStar(true);
-	//this.scene.add(this.starsHolder.mesh);
+	this.starsHolder.createStar(this.objectsColor);
+	/*this.starsHolder.createStar(this.objectsColor, true);*/
+	this.scene.add(this.starsHolder.mesh);
 }
 
-Game.prototype.initCollisions = function()
-{
-	this.gCollision = new GameCollision(this);
-}
-
-	/*
-		_POSTPROCESSING
-	*/
-
-Game.prototype.postprocessing = function()
-{
-	WAGNER.vertexShadersPath = 'src/js/postprocessing/vertex-shaders';
-	WAGNER.fragmentShadersPath = 'src/js/postprocessing/fragment-shaders';
-
-	this.composer = new WAGNER.Composer(this.renderer);
-	this.composer.setSize(this.WIDTH, this.HEIGHT);
-
-
-	this.noisePass = new WAGNER.NoisePass();
-	this.noisePass.params.amount = 0.02;
-	this.noisePass.params.speed = 0.4;
-
-	this.blurPass = new WAGNER.BoxBlurPass();
-
-	this.fxaaPass = new WAGNER.FXAAPass();
-
-	this.vignettePass = new WAGNER.VignettePass();
-
-	this.vignettePass.params.amount = 0.4;
-	this.vignettePass.params.falloff = 0.2;
-}
-
-
-	/*
-		_LIGHTS
-	*/
-
-Game.prototype.lights = function()
-{
-	this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-	this.scene.add(this.ambientLight);
-
-	this.pointLight = new THREE.PointLight(0xffffff, 0.6);
-	this.pointLight.position.set(0, 0, 0);
-	this.scene.add(this.pointLight);
-
-	this.p = this.pointLight.clone();
-	this.p.intensity = 0.2;
-
-	this.p.position.set(0, -175, 0);
-	this.scene.add(this.p)
-}
 	/*
 	 	_HANDLE EVENTS 
 	*/
 
-Game.prototype.handleWindowResize = function(event)
+Game.prototype.handleWindowResize = function()
 {
 	this.WIDTH = window.innerWidth;
 	this.HEIGHT = window.innerHeight;
@@ -634,56 +661,58 @@ Game.prototype.handleWindowResize = function(event)
 	this.camera.aspect = this.aspectRatio;
 	this.camera.updateProjectionMatrix();
 }
-var mousePos = {x:0, y:0}
-function handleMouseMouve(event)
+
+Game.prototype.handleMouseClick = function()
+{
+	var _this = this;
+	if(this.status == 'paused')
+	{
+			this.gDOM.pause.div.style.display = 'none';
+			this.gDOM.gameContainer.style.opacity = 1;
+			this.status = 'start';
+	}
+	else if(this.status == 'playing')
+	{
+		this.status = 'paused';
+	}
+
+	createjs.Tween.get(this.blurPass.params.delta, {override:true})
+        .to({x: 50}, 250)
+        .call(function(){
+			createjs.Tween.get(_this.blurPass.params.delta, {override:true})
+          		.to({x:0}, 250);
+	});
+
+}
+
+Game.prototype.handleMouseMove = function(event)
 {
 	mx = (event.clientX / window.innerWidth) * 2 - 1;
 	my = - (event.clientY / window.innerHeight) * 2 + 1;
 
   	var vector = new THREE.Vector3(mx, my, 0.5);
-	vector.unproject( game.camera );
-	var dir = vector.sub( game.camera.position ).normalize();
-	var distance = - game.camera.position.z / dir.z;
-	var pos = game.camera.position.clone().add( dir.multiplyScalar( distance  ) );
+	vector.unproject( this.camera );
+	var dir = vector.sub( this.camera.position ).normalize();
+	var distance = - this.camera.position.z / dir.z;
+	var pos = this.camera.position.clone().add( dir.multiplyScalar( distance  ) );
 
-	mousePos.x = pos.x;
-	mousePos.y = pos.y;
+	this.mousePos.x = pos.x;
+	this.mousePos.y = pos.y;
 }
 
-// _EVENTS //
-
-Game.prototype.addMultiListener = function (el, s, fn) {
-  s.split(' ').forEach(e => el.addEventListener(e, fn, false));
+Game.prototype.events = function()
+{
+	var _this = this;
+	window.addEventListener('resize', function(){ _this.handleWindowResize(); });
+	window.addEventListener('click', function(){ _this.handleMouseClick(); });
+	document.addEventListener('mousemove', _this.handleMouseMove.bind(_this), false);
 }
+
+/* _GLOBAL EVENTS */
 
 window.addEventListener('load', init, false);
 
-window.addEventListener('resize', function(){
-	game.handleWindowResize();
-});
-
-window.addEventListener('click', function(){
-
-	if(game.status == 'paused')
-	{
-			game.gDOM.pause.div.style.display = 'none';
-			game.gDOM.gameContainer.style.opacity = 1;
-			game.status = 'start';
-	}
-	else if(game.status == 'playing')
-	{
-		game.status = 'paused';
-	}
-		
-	TweenMax.to(game.blurPass.params.delta, 0.25, {x: 50, onComplete: function(){
-			TweenMax.to(game.blurPass.params.delta, 0.25, {x:0});
-		}});
-
-});
-
-document.addEventListener('mousemove', handleMouseMouve, false);
-
-// GAME OBJECTS //
+/* _GAME OBJECTS */
 
 	/*
 		DOM
@@ -693,12 +722,12 @@ GameDOM = function(game)
 {
 	this.game = game;
 
-	// DOM elements
 	this.intro = {
 		title: document.getElementById("title"),
 		subtitle: document.getElementById("subtitle"),
 		description: document.getElementById("description"),
-		play: document.getElementById("play"), 
+		play: document.getElementById("play"),
+		sounds: document.getElementsByClassName("item"),
 		div: document.getElementById("intro")
 	};
 
@@ -719,10 +748,21 @@ GameDOM = function(game)
 		div: document.getElementById("scores")
 	};
 
+	this.progression = {
+		text: document.getElementById("progressionText"),
+		percent: document.getElementById("percent"),
+		rect: document.getElementById("progressionRectFront"),
+		div: document.getElementById("progression")
+	}
+
 	this.score = {
 		points: document.getElementById("points"),
 		text: document.getElementById("text"),
+		life: document.getElementById("lifeRectFront"),
 		div: document.getElementById("score")
+	}
+	this.loader = {
+		div: document.getElementById("loader")
 	}
 
 	this.gameContainer = document.getElementById("gameContainer");
@@ -731,19 +771,40 @@ GameDOM = function(game)
 GameDOM.prototype.updateScore = function()
 {
 	this.score.points.innerHTML = this.game.gScore.score;
-	this.score.text.style.color = this.game.planetHolder.clearColor.replace('0x', '#'); /* MOVE TO PORTALS COLLISION */
+}
+
+GameDOM.prototype.updateLife = function(starLife, maxStarLife)
+{	
+  	var l = 10*starLife/maxStarLife;
+  	this.score.life.style.width = l+'vw';
+}
+
+GameDOM.prototype.updateProgression = function()
+{
+	this.progression.text.style.color = this.game.planetHolder.color.clear.replace('0x', '#');
+	this.progression.rect.style.background = this.game.planetHolder.color.clear.replace('0x', '#');
+	
+	var p = Math.min(Math.floor(100 * this.game.gAudio.context.currentTime/this.game.gAudio.sound._duration), 100);
+	this.progression.rect.style.width = p*0.1+'vw';
+	this.progression.percent.innerHTML = p+' %';
 }
 
 GameDOM.prototype.introEvent = function()
 {
 	this.gameContainer.style.cursor = 'pointer';
-
 	var _this = this;
-	this.intro.play.addEventListener('click', function(){
-		_this.intro.div.style.display = 'none';
-		_this.game.status = "init";
-		_this.score.div.style.display = 'block';
-	});
+	for (var i = 0; i < this.intro.sounds.length; i++) 
+	{
+   		this.intro.sounds[i].addEventListener('click', function(){ 
+   																	if(!_this.game.gAudio.onLoad)
+   																	{
+   																		_this.game.gAudio.setSoundPath(this);
+   																		_this.game.gAudio.change(_this); 
+																		_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
+   																	}
+   																
+   																} , false);
+	}
 }
 
 GameDOM.prototype.endEvent = function()
@@ -752,22 +813,39 @@ GameDOM.prototype.endEvent = function()
 
 	this.score.div.style.display ='none';
 	this.scores.div.style.display = 'block';
+	this.progression.div.style.display = 'block';
 
 	this.scores.portals.innerHTML = this.game.gScore.portalScore;
 	this.scores.comets.innerHTML = this.game.gScore.cometScore;
 	this.scores.walls.innerHTML = this.game.gScore.wallScore;
 	this.scores.total.innerHTML = this.game.gScore.score;
 
+	this.game.joystick.reset();
+
+	this.updateProgression();
+
 	var _this = this;
 	this.scores.replay.addEventListener('click', function(){
 		_this.scores.div.style.display = 'none';
-		_this.score.div.style.display = 'block';
-		_this.game.status = "init";
+		_this.progression.div.style.display = 'none';
+
+		if(!_this.game.gAudio.onLoad)
+   		{
+   			_this.game.gAudio.change(_this); 
+			_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
+   		}
 	});
 
-	this.scores.change.addEventListener('click', function(){ // IMPLEMENT CHANGE MUSIC
+	this.scores.change.addEventListener('click', function(){
 		_this.scores.div.style.display = 'none';
+		_this.progression.div.style.display = 'none';
 		_this.intro.div.style.display = 'block';
+		_this.game.resetVariables();
+		for(var i=0; i<_this.game.starsHolder.starsInUse.length; i++)
+		{
+			var star = _this.game.starsHolder.starsInUse[i];
+			_this.game.scene.remove(star.mesh);
+		}
 		_this.game.status = 'waiting';
 	});
 }
@@ -786,24 +864,52 @@ GameDOM.prototype.pauseEvent = function()
 		_this.game.status = 'start';
 	});
 
-	this.pause.replay.addEventListener('click', function(){ // IMPLEMENT CHANGE MUSIC
+	this.pause.replay.addEventListener('click', function(){
 		_this.pause.div.style.display = 'none';
 		_this.gameContainer.style.opacity = 1;
-		_this.game.status = 'init';
+
+		if(!_this.game.gAudio.onLoad)
+   		{
+   			_this.game.gAudio.change(_this); 
+			_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
+   		}
 	});
 
-	this.pause.change.addEventListener('click', function(){ // IMPLEMENT CHANGE MUSIC
+	this.pause.change.addEventListener('click', function(){
 		_this.pause.div.style.display = 'none';
 		_this.gameContainer.style.opacity = 1;
 		_this.score.div.style.display = 'none';
 		_this.intro.div.style.display = 'block';
 		_this.game.resetVariables();
-		_this.game.scene.remove(_this.game.starsHolder.starsInUse[0].mesh);
+		for(var i=0; i<_this.game.starsHolder.starsInUse.length; i++)
+		{
+			var star = _this.game.starsHolder.starsInUse[i];
+			_this.game.scene.remove(star.mesh);
+		}
 		_this.game.status = 'waiting';
 	});
 }
 
-// DOM animation functions
+GameDOM.prototype.loadEvent = function()
+{
+	this.loader.div.style.display = 'block';
+	this.pause.div.style.display = 'none';
+	this.gameContainer.style.opacity = 1;
+	this.score.div.style.display = 'none';
+	this.intro.div.style.display = 'none';
+	this.progression.div.style.display = 'none';
+}
+
+GameDOM.prototype.startEvent = function()
+{
+	this.loader.div.style.display = 'none';
+}
+
+GameDOM.prototype.resetColors = function()
+{
+	this.score.text.style.color = this.game.planetHolder.color.clear.replace('0x', '#');
+	this.score.life.style.background = this.game.planetHolder.color.clear.replace('0x', '#');
+}
 
 	/*
 		_SCORE
@@ -814,13 +920,32 @@ GameScore = function(gAudio)
 	this.gAudio = gAudio;
 
 	this.score = 0, this.wallScore = 0, this.cometScore = 0, this.portalScore = 0;
-	this.wallPoints = -500, this.cometPoints = 100, this.portalPoints = 1000;
+	this.wallPoints = -1500, this.cometPoints = 100, this.portalPoints = 1000;
+	this.points = 0;
 }
 
 GameScore.prototype.update = function()
 {
-	var points = (this.portalScore*this.portalPoints) + (this.cometScore*this.cometPoints) + (this.wallScore*this.wallPoints);
-	this.score = Math.floor( (this.gAudio.audio.currentTime*10) + points);
+	this.score = Math.max(0, Math.floor( (this.gAudio.context.currentTime*10) + this.points));
+}
+
+
+GameScore.prototype.wallScoreUpdate = function()
+{
+	this.wallScore++;
+	this.points = Math.max(0, this.points+this.wallPoints);
+}
+
+GameScore.prototype.cometScoreUpdate = function()
+{
+	this.cometScore++;
+	this.points = Math.max(0, this.points+this.cometPoints);
+}
+
+GameScore.prototype.portalScoreUpdate = function()
+{
+	this.portalScore++;
+	this.points = Math.max(0, this.points+this.portalPoints);
 }
 
 	/*
@@ -921,48 +1046,8 @@ GameColor.prototype.setObjectColor = function(color, object)
 
 GameAudio = function()
 {
-	this.audio, this.context, this.analyser, this.source;
-}
-
-GameAudio.prototype.setUp = function()
-{
-	this.audio = new Audio;
-	this.audio.src = 'assets/sounds/monody.mp3';
-	this.audio.controls = false;
-	this.audio.loop = false;
-	this.audio.autoplay = false;
-
-	this.context = new AudioContext;
-	
-	this.analyser = this.context.createAnalyser();
-	this.analyser.fftSize = 1024;
-	this.analyser.minDecibels = -75;
-	this.analyser.maxDecibels = 10;
-	this.analyser.smoothingTimeConstant = 0.75;
-
-	this.source = this.context.createMediaElementSource(this.audio);
-	
-	this.analyser.connect(this.context.destination);
-	this.source.connect(this.analyser);
-
-	this.audio.addEventListener("ended", function(){
-   		
-		if(game.status == 'playing')
-		{
-   			game.status = 'finished';
-		}
-	
-	});
-	
-	this.data_array = new Uint8Array(this.analyser.frequencyBinCount);
-
-	this.webaudio	= new WebAudio();
-	this.sound	= this.webaudio.createSound();
-	var _this = this;
-	// load sound.wav and play it
-	this.sound.load('assets/sounds/monody.mp3', function(sound){
-		sound.loop(false).play();
-	});
+	this.webaudio, this.sound, this.context;
+	this.soundPath, this.onLoad = false;
 }
 
 GameAudio.prototype.addObject = function(object, threshold, min, max)
@@ -974,22 +1059,19 @@ GameAudio.prototype.addObject = function(object, threshold, min, max)
 	object.fMax = max;
 }
 
-GameAudio.prototype.update = function()
+GameAudio.prototype.update = function(game)
 {
-	/*this.analyser.getByteFrequencyData(this.data_array);
-	console.log(this.sound.amplitude(512))*/
-	//this.data_array = this.sound.frequencyData();
+	if(this.context.currentTime >= this.sound._duration)
+	{
+		if(game.status == 'playing')
+		{
+	   		game.status = 'finished';
+		}
+	}
 }
 
 GameAudio.prototype.getMag = function(min, max)
 {
-	/*var total = 0;
-	for(var i=min; i<max; i++)
-	{
-		total += this.data_array[i]/4;
-	}
-
-	return total/(max-min+1);*/
 	return this.sound.magnitude(min, max);
 }
 
@@ -1013,6 +1095,37 @@ GameAudio.prototype.check = function(object)
 	return this.isBeat(this.magnitude, object);
 }
 
+GameAudio.prototype.change = function(gDOM)
+{
+	gDOM.game.status = 'loading';
+	
+	if(this.webaudio && this.sound)
+	{
+		this.webaudio.destroy();
+		this.sound.destroy();
+	}
+
+	this.webaudio	= new WebAudio();
+	this.sound	= this.webaudio.createSound();
+	this.context = this.sound._context;
+	this.context.suspend();
+
+	var _this = this;
+
+	this.sound.load(this.soundPath, function(sound){
+		gDOM.game.status = 'init';
+		_this.onLoad = !_this.onLoad;
+   		gDOM.intro.div.style.display = 'none';
+		gDOM.score.div.style.display = 'block';
+		sound.loop(false).play();
+	});
+}
+
+GameAudio.prototype.setSoundPath = function(item)
+{
+	var src = item.getAttribute('data-sound');
+	this.soundPath = 'assets/sounds/'+src;
+}
 	/*
 		_PARTICLES
 	*/
@@ -1022,7 +1135,7 @@ Particle = function(x, y, z)
 	this.mesh = new THREE.Vector3(x, y, z);
 }
 
-Particles = function(size, transparent, opacity, vertexColors, sizeAttenuation, color, number, range)
+Particles = function(size, transparent, opacity, vertexColors, sizeAttenuation, color)
 {
 	this.geometry = new THREE.Geometry();
 	this.material = new THREE.PointsMaterial({
@@ -1060,7 +1173,7 @@ Particles.prototype.generateSprite = function() {
         gradient.addColorStop(0, 'rgba(255,255,255,1)');
         gradient.addColorStop(0.2, 'rgba(128,128,128,1)');
         gradient.addColorStop(0.4, 'rgba(64,64,64,1)');
-        gradient.addColorStop(1, 'rgba(0,0,0,1)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
         context.fillStyle = gradient;
         context.arc(0, 0, 50, 0, 2 * Math.PI);
         context.fill();
@@ -1073,32 +1186,31 @@ ParticlesHolder = function()
 {
 	this.mesh = new THREE.Object3D();
 	this.particlesInUse = [];
-
 	this.speed = 0.2;
 }
 
-ParticlesHolder.prototype.createParticles = function(size=0.4, transparent=true, opacity=0.2, vertexColors=false, sizeAttenuation=true, color=0xffffff, number=10, range=50)
+ParticlesHolder.prototype.createParticles = function(size, transparent, opacity, vertexColors, sizeAttenuation, color, number, range)
 {	
 	var particles = new Particles(size, transparent, opacity, vertexColors, sizeAttenuation, color);
 	particles.create(number, range);
 	this.particlesInUse.push(particles.points);
-	this.mesh.add(particles.points); 
+	this.mesh.add(particles.points);
 }
 
 ParticlesHolder.prototype.update = function()
 {
-	var _this = this;
 	for(var i=0; i<this.particlesInUse.length; i++)
 	{
+		var speed = 0.5;
 		this.particlesInUse[i].geometry.vertices.forEach(function(particle){
 			
 			
-			particle.z += _this.speed;
+			particle.z += speed;
 				
-			if(particle.z > 100)
+			if(particle.z > 15)
 			{
-				particle.x = Math.random() * 50 - 50 / 2;
-				particle.y = Math.random() * 50 - 50 / 2;
+				particle.x = Math.random() * 100 - 100 / 2;
+				particle.y = Math.random() * 100 - 100 / 2;
 				particle.z = Math.random()*(-100+150)-150;
 			}
 		});
@@ -1108,7 +1220,7 @@ ParticlesHolder.prototype.update = function()
 
 ParticlesHolder.prototype.wallExplode = function(mesh) {
            
-    var particleMesh = new Particles(0.5, true, 1, false, true, 0xffffff);
+    var particleMesh = new Particles(0.6, true, 1, false, true, 0xffffff);
     var geometry = new THREE.BoxGeometry(1, 1, 1, 1, 1, 100);
     var particles = new THREE.Points(geometry, particleMesh.material);
     particles.sortParticles = true;
@@ -1124,12 +1236,12 @@ ParticlesHolder.prototype.wallExplode = function(mesh) {
 		_WALLS
 	*/
 
-Wall = function(clearColor, darkColor)
+Wall = function(color)
 {
 	var geometry = new THREE.BoxGeometry(1, 1, 1);
 	var material = new THREE.MeshPhongMaterial({
-		color: clearColor.replace('0x', '#'),
-		specular: clearColor.replace('0x', '#'),
+		color: color.dark.replace('0x', '#'),
+		specular: color.clear.replace('0x', '#'),
 		transparent: true,
 		opacity: 0.8
 	});
@@ -1138,20 +1250,22 @@ Wall = function(clearColor, darkColor)
 	this.height = 0;
 }
 
-WallsHolder = function(clearColor, darkColor)
+WallsHolder = function(color)
 {
 	this.mesh = new THREE.Object3D();
 	this.wallsInUse = [];
 	this.wallsPool = [];
 	this.wallsList = [];
 
+	this.color;
 	this.speed = 1;
-	this.clearColor, this.darkColor;
 }
 
 WallsHolder.prototype.spawnWalls = function()
 {
 	var numWalls = 1;
+	if(this.wallsInUse.length < 6)
+	{
 	for(var i=0; i<numWalls; i++)
 	{
 		if(this.wallsPool.length)
@@ -1160,7 +1274,7 @@ WallsHolder.prototype.spawnWalls = function()
 		}
 		else
 		{
-			wall = new Wall(this.clearColor, this.darkColor);
+			wall = new Wall(this.color);
 		}
 
 		wall.angle = Math.random()*Math.PI*2/numWalls;
@@ -1172,20 +1286,18 @@ WallsHolder.prototype.spawnWalls = function()
 
 		wall.mesh.lookAt(new THREE.Vector3( (Math.random()*(25+25)-25) , (Math.random()*(25+25)-25) , wall.mesh.position.z));
 
-		//TweenMax.to(wall.mesh.scale, 1, {z: 250});
-		 createjs.Tween.get(wall.mesh.scale, {override:true})
-          .to({z: 250}, (1/this.speed)*1000);
+		createjs.Tween.get(wall.mesh.scale, {override:true})
+        	.to({z: 250}, (1/this.speed)*1000);
 
 		this.mesh.add(wall.mesh);
 		this.wallsInUse.push(wall);
 		this.wallsList.push(wall.mesh);
 	}
+	}
 }
 
 WallsHolder.prototype.update = function()
 {
-	//this.speed = 0.5;
-
 	for(var i=0; i<this.wallsInUse.length; i++)
 	{
 		var wall = this.wallsInUse[i];
@@ -1194,12 +1306,10 @@ WallsHolder.prototype.update = function()
 
 		if(wall.mesh.position.z < 5 + this.speed*2 && wall.mesh.position.z > 5)
 		{
-			//TweenMax.to(wall.mesh.scale, (1/this.speed)*0.2, {z: 0.1});
-			
-		 createjs.Tween.get(wall.mesh.scale, {override:true})
-          .to({z: 0.1}, (1/this.speed)*0.2*100);
+			createjs.Tween.get(wall.mesh.scale, {override:true})
+         		.to({z: 0.1}, (1/this.speed)*0.2*100);
 		}
-		if(wall.mesh.position.z > 10)
+		if(wall.mesh.position.z > 15)
 		{
 			this.wallsPool.unshift(this.wallsInUse.splice(i, 1)[0]);
 			this.wallsList.splice(i, 1);
@@ -1211,21 +1321,18 @@ WallsHolder.prototype.update = function()
 
 WallsHolder.prototype.resetColor = function(gColor)
 {
-	var color = gColor.getRandom();
-	
-	this.darkColor = color.dark;
-	this.clearColor = color.clear;
+	this.color = gColor.getRandom();
 
 	for(var i=0; i<this.wallsPool.length; i++)
 	{
 		var wall = this.wallsPool[i];
-		gColor.setObjectColor(this.darkColor, wall.mesh);
+		gColor.setObjectColor(this.color.dark, wall.mesh);
 	}
 
 	for(var i=0; i<this.wallsInUse.length; i++)
 	{
 		var wall = this.wallsInUse[i];
-		gColor.setObjectColor(this.darkColor, wall.mesh);
+		gColor.setObjectColor(this.color.dark, wall.mesh);
 	}
 }
 
@@ -1238,14 +1345,14 @@ WallsHolder.prototype.resetColor = function(gColor)
 			_ATMOSPHERE
 		*/
 
-Atmosphere = function(clearColor, darkColor)
+Atmosphere = function(color)
 {
 	var geometry = new THREE.DodecahedronGeometry(100, 1);
 	var material = new THREE.MeshPhongMaterial({
-													color: clearColor.replace('0x', '#'), 
-													specular: clearColor.replace('0x', '#'),
+													color: color.clear.replace('0x', '#'), 
+													specular: color.clear.replace('0x', '#'),
 													transparent: true, 
-													opacity: 1,
+													opacity: 0.6,
 													wireframe: true
 												});
 
@@ -1259,24 +1366,24 @@ Atmosphere.prototype.move = function(gAudio)
 	{
 		value += gAudio.magnitude*0.008;
 	}
-	//TweenMax.to(this.mesh.scale, 0.25, {x: value, y: value, z: value});
-	 createjs.Tween.get(this.mesh.scale, {override:true})
-          .to({x: value, y: value, z: value}, 250);
+
+	createjs.Tween.get(this.mesh.scale, {override:true})
+          .to({x: value, y: value, z: value}, 100);
 }
 
-Planet = function(clearColor, darkColor)
+Planet = function(color)
 {
 	var geometry = new THREE.DodecahedronGeometry(75, 1);
 	var material = new THREE.MeshPhongMaterial({
-												color: clearColor.replace('0x', '#'), 
-												//specular: 0x3498db, 
+												color: color.clear.replace('0x', '#'), 
+												/*specular: color.clear.replace('0x', '#'),*/
 												transparent: true, 
 												opacity: 0.6,
 											});
 
 	var wireframeMaterial = new THREE.MeshPhongMaterial({
-												color: clearColor.replace('0x', '#'), 
-												//specular: 0x3498db, 
+												color: color.dark.replace('0x', '#'), 
+												/*specular: color.clear.replace('0x', '#'),*/
 												transparent: true, 
 												opacity: 0.6,
 												wireframe: true
@@ -1284,11 +1391,6 @@ Planet = function(clearColor, darkColor)
 
 
 	this.mesh = new THREE.SceneUtils.createMultiMaterialObject(geometry, [material, wireframeMaterial]);
-
-
-	this.mesh.castShadow = true;
-	this.mesh.receiveShadow = true;
-
 }
 
 Planet.prototype.move = function(gAudio)
@@ -1298,19 +1400,21 @@ Planet.prototype.move = function(gAudio)
 	{
 		value += gAudio.magnitude*0.008;
 	}
-	TweenMax.to(this.mesh.scale, 0.25, {x: 1/value, y: 1/value, z: 1/value});
+
+	createjs.Tween.get(this.mesh.scale, {override:true})
+    	.to({x: 1/value, y: 1/value, z: 1/value}, 100);
 }
 
 		/*
 			_SATELLITE
 		*/
 
-Satellite = function(radius, clearColor, darkColor)
+Satellite = function(radius, color)
 {
 	var geometry = new THREE.DodecahedronGeometry(radius, 0);
 	var material = new THREE.MeshPhongMaterial({
-												color: darkColor.replace('0x', '#'),
-												specular: darkColor.replace('0x', '#'),
+												color: color.dark.replace('0x', '#'),
+												specular: color.dark.replace('0x', '#'),
 												transparent: true,
 												opacity: 1
 											});
@@ -1337,12 +1441,12 @@ Satellite.prototype.move = function()
 			_FRAGMENT
 		*/
 
-Fragment = function(radius, clearColor, darkColor)
+Fragment = function(radius, color)
 {
 	var geometry = new THREE.IcosahedronGeometry(radius, 0);
 	var material = new THREE.MeshPhongMaterial({
-												color: clearColor.replace('0x', '#'),
-												specular: clearColor.replace('0x', '#'),
+												color: color.clear.replace('0x', '#'),
+												specular: color.clear.replace('0x', '#'),
 												transparent: true,
 												opacity: 0.8
 											});
@@ -1377,7 +1481,7 @@ PlanetHolder = function()
 {
 	this.mesh = new THREE.Object3D();
 
-	this.clearColor, this.darkColor;
+	this.color;
 
 	this.numSatellites = 10;
 	this.satellitesInUse = [];
@@ -1388,8 +1492,8 @@ PlanetHolder = function()
 
 PlanetHolder.prototype.createPlanet = function()
 {
-	this.planet = new Planet(this.clearColor, this.darkColor);
-	this.atmosphere = new Atmosphere(this.clearColor, this.darkColor);
+	this.planet = new Planet(this.color);
+	this.atmosphere = new Atmosphere(this.color);
 
 	this.mesh.add(this.planet.mesh);
 	this.mesh.add(this.atmosphere.mesh);
@@ -1401,7 +1505,7 @@ PlanetHolder.prototype.createSatellites = function()
 	for(var i=0; i<this.numSatellites; i++)
 	{
 		var radius = Math.random()*(2-0.5)+0.5;
-		var satellite = new Satellite(radius, this.clearColor, this.darkColor);
+		var satellite = new Satellite(radius, this.color);
 
 		satellite.angle = i*step;
 		satellite.height = Math.random()*(98-78)+78;
@@ -1430,7 +1534,7 @@ PlanetHolder.prototype.createFragments = function()
 	for(var i=0; i<this.numFragments; i++)
 	{
 		var radius = Math.random()*(2-0.5)+0.5;
-		var fragment = new Fragment(radius, this.clearColor, this.darkColor);
+		var fragment = new Fragment(radius, this.color);
 
 		fragment.speed = Math.random()*(0.5-0.1)+0.1;
 
@@ -1453,101 +1557,91 @@ PlanetHolder.prototype.moveFragments = function()
 	}
 }
 
-PlanetHolder.prototype.resetColor = function(gColor, cometsHolder, portalsHolder)
+PlanetHolder.prototype.update = function(gAudio)
 {
-	var color = gColor.getRandom();
+	this.atmosphere.move(gAudio);
+	this.planet.move(gAudio);
 
-	this.darkColor = color.dark;
-	this.clearColor = color.clear;
+	this.planet.mesh.rotation.y += 0.0005;
+	this.planet.mesh.rotation.z += 0.005;
 
-	gColor.setObjectColor(this.clearColor, this.planet.mesh.children[0]);
-	gColor.setObjectColor(this.clearColor, this.planet.mesh.children[1]);
+	this.atmosphere.mesh.rotation.x += 0.0005;
+	this.atmosphere.mesh.rotation.y += 0.0005;
 
-	gColor.setObjectColor(this.clearColor, this.atmosphere.mesh);
+	this.rotateSatellites();
+	this.moveFragments();
+}
+
+PlanetHolder.prototype.resetColor = function(gColor)
+{
+	this.color = gColor.getRandom();
+
+	gColor.setObjectColor(this.color.clear, this.planet.mesh.children[0]);
+	gColor.setObjectColor(this.color.clear, this.planet.mesh.children[1]);
+
+	gColor.setObjectColor(this.color.clear, this.atmosphere.mesh);
 
 	for(var i=0; i<this.satellitesInUse.length; i++)
 	{
 		var satellite = this.satellitesInUse[i];
-		gColor.setObjectColor(this.darkColor, satellite.mesh);
+		gColor.setObjectColor(this.color.dark, satellite.mesh);
 	}
 
 	for(var i=0; i<this.fragmentsInUse.length; i++)
 	{
 		var fragment = this.fragmentsInUse[i];
-		gColor.setObjectColor(this.clearColor, fragment.mesh);
+		gColor.setObjectColor(this.color.clear, fragment.mesh);
 	}
-
-	cometsHolder.resetColor(gColor, color);
-	portalsHolder.resetColor(gColor, color);
 }
 
 	/*
 		_PORTAL
 	*/
 
-Portal = function(tubularSegments=3, clearColor, darkColor)
+PortalLayer = function(radius, tube, tubularSegments, color)
+{
+	var geomLayer = new THREE.TorusGeometry(radius, tube, 2, tubularSegments);
+	var matLayer = new THREE.MeshPhongMaterial({
+													color: color.replace('0x', '#'), 
+													specular: color.replace('0x', '#'),
+													transparent: true,
+													opacity: 0.8,
+													side: THREE.DoubleSide
+												});
+	this.mesh = new THREE.Mesh(geomLayer, matLayer);
+}
+
+Portal = function(color)
 {
 	this.mesh = new THREE.Object3D();
 
-	var geomFirstLayer = new THREE.TorusGeometry(1, 1*0.1, 2, tubularSegments);
-	var matFirstLayer = new THREE.MeshPhongMaterial({
-													color: clearColor.replace('0x', '#'), 
-													specular: clearColor.replace('0x', '#'),
-													transparent: true,
-													opacity: 0.8,
-													side: THREE.DoubleSide
-												});
-	this.firstLayer = new THREE.Mesh(geomFirstLayer, matFirstLayer);
-	this.mesh.add(this.firstLayer);
+	this.layersInUse = [];
+	this.numLayers = 5;
 
-	var geomSecondLayer = new THREE.TorusGeometry(0.8, 0.8*0.1, 2, tubularSegments);
-	var matSecondLayer = new THREE.MeshPhongMaterial({
-													color: 0xecf0f1, 
-													specular: 0xecf0f1,
-													transparent: true,
-													opacity: 0.8,
-													side: THREE.DoubleSide
-												});
-	this.secondLayer = new THREE.Mesh(geomSecondLayer, matSecondLayer);
-	this.mesh.add(this.secondLayer);
+	var tubularSegments = Math.floor(Math.random()*(6-3)+3);
 
-	var geomThirdLayer = new THREE.TorusGeometry(0.6, 0.6*0.1, 3, tubularSegments);
-	var matThirdLayer = new THREE.MeshPhongMaterial({
-													color: clearColor.replace('0x', '#'), 
-													specular: clearColor.replace('0x', '#'),
-													transparent: true,
-													opacity: 0.8,
-													side: THREE.DoubleSide
-												});
-	this.thirdLayer = new THREE.Mesh(geomThirdLayer, matThirdLayer);
-	this.mesh.add(this.thirdLayer);
+	for(var i=1; i<this.numLayers+1; i++)
+	{
+		var radius = i*0.2;
+		var tube = radius*0.1;
 
-	var geomFourthLayer = new THREE.TorusGeometry(0.4, 0.4*0.1, 3, tubularSegments);
-	var matFourthLayer = new THREE.MeshPhongMaterial({
-													color: 0xecf0f1, 
-													specular: 0xecf0f1,
-													transparent: true,
-													opacity: 0.8,
-													side: THREE.DoubleSide
-												});
-	this.fourthLayer = new THREE.Mesh(geomFourthLayer, matFourthLayer);
-	this.mesh.add(this.fourthLayer);
+		if(i%2==0)
+		{
+			layer = new PortalLayer(radius, tube, tubularSegments, '0xecf0f1');
+		}
+		else
+		{
+			layer = new PortalLayer(radius, tube, tubularSegments, color.clear);
+		}
 
-	var geomFifthLayer = new THREE.TorusGeometry(0.2, 0.2*0.1, 3, tubularSegments);
-	var matTFifthLayer = new THREE.MeshPhongMaterial({
-													color: clearColor.replace('0x', '#'), 
-													specular: clearColor.replace('0x', '#'),
-													transparent: true,
-													opacity: 0.8,
-													side: THREE.DoubleSide
-												});
-	this.fifthLayer = new THREE.Mesh(geomFifthLayer, matTFifthLayer);
-	this.mesh.add(this.fifthLayer);
+		this.mesh.add(layer.mesh);
+		this.layersInUse.push(layer);
+	}
 
 	var geometry = new THREE.CircleGeometry(1.2, tubularSegments);
 	var material = new THREE.MeshPhongMaterial({
-													color: clearColor.replace('0x', '#'),
-													//specular: clearColor.replace('0x', '#'),
+													color: color.clear.replace('0x', '#'),
+													specular: color.clear.replace('0x', '#'),
 													transparent: true,
 													opacity: 0.4,
 													side: THREE.DoubleSide
@@ -1562,10 +1656,10 @@ PortalsHolder = function()
 	this.portalsInUse = [];
 	this.portalsList = [];
 
-	this.clearColor, this.darkColor;
+	this.color;
 
 	this.portalLastSpawn = 0;
-	this.speed = 0.2;
+	this.speed = 0.4;
 }
 
 
@@ -1573,18 +1667,16 @@ PortalsHolder.prototype.spawnPortals = function(spawnTime)
 {
 	this.portalLastSpawn = spawnTime;
 
-	var tubularSegments = Math.floor(Math.random()*((6)-3)+3);
-	portal = new Portal(tubularSegments, this.clearColor, this.darkColor);
+	portal = new Portal(this.color);
 
-	portal.mesh.position.x = Math.random()*(6+6)-6;
+	portal.mesh.position.x =  Math.random()*(6+6)-6;
 	portal.mesh.position.y = Math.random()*(3+3)-3;
 	portal.mesh.position.z = -100;
 
 	portal.mesh.scale.set(0.1, 0.1, 0.1);
 
-	//TweenMax.to(portal.mesh.scale, 1, {x: 1, y: 1, z: 1});
-		 createjs.Tween.get(portal.mesh.scale, {override:true})
-          .to({x: 1, y: 1, z: 1}, 1000);
+	createjs.Tween.get(portal.mesh.scale, {override:true})
+    	.to({x: 1.5, y: 1.5, z: 1.5}, 1000);
 
 	this.portalsInUse.push(portal);
 	this.portalsList.push(portal.collisionMesh);
@@ -1612,14 +1704,19 @@ PortalsHolder.prototype.update = function()
 PortalsHolder.prototype.resetColor = function(gColor, color)
 {
 
-	this.darkColor = color.dark;
-	this.clearColor = color.clear;
+	this.color = color;
 
 	for(var i=0; i<this.portalsInUse.length; i++)
 	{
 		var portal = this.portalsInUse[i];
-		gColor.setObjectColor(this.clearColor, portal.firstLayer);
-		gColor.setObjectColor(this.clearColor, portal.thirdLayer);
+		for(var j=0; j<portal.layersInUse.length; j++)
+		{
+			var layer = portal.layersInUse[j];
+			if(((j+1)%2)==0)
+				gColor.setObjectColor('0xecf0f1', layer.mesh);
+			else
+				gColor.setObjectColor(color.clear, layer.mesh);
+		}
 	}
 }
 
@@ -1631,14 +1728,14 @@ PortalsHolder.prototype.resetColor = function(gColor, color)
 			_COMA
 		*/
 
-Coma = function(clearColor, darkColor)
+Coma = function(color)
 {
 	this.mesh = new THREE.Object3D();
 
 	var geomFirstPoint = new THREE.IcosahedronGeometry(0.1, 0);
 	var matFirstPoint = new THREE.MeshPhongMaterial({
-													color: darkColor.replace('0x', '#'), 
-													specular: darkColor.replace('0x', '#'), 
+													color: color.dark.replace('0x', '#'), 
+													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
 													opacity: 1,
 													wireframe: false
@@ -1647,8 +1744,8 @@ Coma = function(clearColor, darkColor)
 
 	var geomSecondPoint = new THREE.IcosahedronGeometry(0.1, 1);
 	var matSecondPoint = new THREE.MeshPhongMaterial({
-													color: darkColor.replace('0x', '#'), 
-													specular: darkColor.replace('0x', '#'), 
+													color: color.dark.replace('0x', '#'), 
+													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
 													opacity: 1,
 													wireframe: false
@@ -1657,8 +1754,8 @@ Coma = function(clearColor, darkColor)
 
 	var geomThirdPoint = new THREE.IcosahedronGeometry(0.1, 1);
 	var matThirdPoint = new THREE.MeshPhongMaterial({
-													color: darkColor.replace('0x', '#'), 
-													specular: darkColor.replace('0x', '#'), 
+													color: color.dark.replace('0x', '#'), 
+													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
 													opacity: 1,
 													wireframe: false
@@ -1667,8 +1764,8 @@ Coma = function(clearColor, darkColor)
 
 	var geomFourthPoint = new THREE.IcosahedronGeometry(0.1, 1);
 	var matFourthPoint = new THREE.MeshPhongMaterial({
-													color: darkColor.replace('0x', '#'), 
-													specular: darkColor.replace('0x', '#'), 
+													color: color.dark.replace('0x', '#'), 
+													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
 													opacity: 1,
 													wireframe: false
@@ -1712,19 +1809,19 @@ Coma.prototype.move = function()
 			_COMETCORE
 		*/
 
-CometCore = function(clearColor, darkColor)
+CometCore = function(color)
 {
 	var geometry = new THREE.DodecahedronGeometry(0.2, 0);
 	var material = new THREE.MeshPhongMaterial({
-												color: clearColor.replace('0x', '#'), 
-												//specular: clearColor.replace('0x', '#'), 
+												color: color.clear.replace('0x', '#'), 
+												specular: color.clear.replace('0x', '#'),
 												transparent: true, 
 												opacity: 0.8,
 											});
 
 	var wireframeMaterial = new THREE.MeshPhongMaterial({
-												color: clearColor.replace('0x', '#'), 
-												//specular: clearColor.replace('0x', '#'), 
+												color: color.clear.replace('0x', '#'), 
+												specular: color.clear.replace('0x', '#'),
 												transparent: true, 
 												opacity: 0.8,
 												wireframe: true
@@ -1734,14 +1831,14 @@ CometCore = function(clearColor, darkColor)
 	this.mesh = new THREE.SceneUtils.createMultiMaterialObject(geometry, [material, wireframeMaterial]);
 }
 
-Comet = function(clearColor, darkColor)
+Comet = function(color)
 {
 	this.mesh = new THREE.Object3D();
 
-	this.core = new CometCore(clearColor, darkColor);
+	this.core = new CometCore(color);
 	this.mesh.add(this.core.mesh);
 
-	this.coma = new Coma(clearColor, darkColor);
+	this.coma = new Coma(color);
 	this.coma.mesh.position.x = this.core.mesh.position.x;
 	this.coma.mesh.position.y = this.core.mesh.position.y;
 	this.coma.mesh.position.z = this.core.mesh.position.z;
@@ -1749,10 +1846,10 @@ Comet = function(clearColor, darkColor)
 
 	var geometry = new THREE.DodecahedronGeometry(0.4, 0);
 	var material = new THREE.MeshPhongMaterial({
-												color: clearColor.replace('0x', '#'), 
-												//specular: clearColor.replace('0x', '#'),
+												color: '#ffffff', 
+												specular: '#ffffff',
 												transparent: true, 
-												opacity: 0.,
+												opacity: 0.2,
 											});
 	this.collisionMesh = new THREE.Mesh(geometry, material);
 	this.mesh.add(this.collisionMesh);
@@ -1765,10 +1862,10 @@ CometsHolder = function()
 	this.cometsInUse = [];
 	this.cometsList = [];
 
-	this.clearColor, this.darkColor;
+	this.color;
 
 	this.cometLastSpawn = 0;
-	this.speed = 0.3;
+	this.speed = 0.6;
 }
 
 CometsHolder.prototype.spawnComets = function(spawnTime)
@@ -1783,7 +1880,7 @@ CometsHolder.prototype.spawnComets = function(spawnTime)
 		}
 		else
 		{
-			comet = new Comet(this.clearColor, this.darkColor);
+			comet = new Comet(this.color);
 		}
 
 		comet.mesh.position.x = Math.random()*(6+6)-6;
@@ -1792,11 +1889,12 @@ CometsHolder.prototype.spawnComets = function(spawnTime)
 
 		comet.mesh.scale.set(0.1, 0.1, 0.1);
 
-		TweenMax.to(comet.mesh.scale, 1, {x: 1, y: 1, z: 1});
+		createjs.Tween.get(comet.mesh.scale, {override:true})
+    		.to({x: 1.5, y: 1.5, z: 1.5}, 1000);
 
-		this.cometsInUse.push(comet);
-		this.cometsList.push(comet.collisionMesh);
 		this.mesh.add(comet.mesh);
+		this.cometsList.push(comet.collisionMesh);
+		this.cometsInUse.push(comet);
 	}
 }
 
@@ -1826,123 +1924,30 @@ CometsHolder.prototype.update = function()
 CometsHolder.prototype.resetColor = function(gColor, color)
 {
 
-	this.darkColor = color.dark;
-	this.clearColor = color.clear;
+	this.color = color;
 
 	for(var i=0; i<this.cometsPool.length; i++)
 	{
 		var comet = this.cometsPool[i];
-		gColor.setObjectColor(this.darkColor, comet.coma.firstPoint);
-		gColor.setObjectColor(this.darkColor, comet.coma.secondPoint);
-		gColor.setObjectColor(this.darkColor, comet.coma.thirdPoint);
-		gColor.setObjectColor(this.darkColor, comet.coma.fourthPoint);		
-		gColor.setObjectColor(this.clearColor, comet.core.mesh.children[0]);
-		gColor.setObjectColor(this.clearColor, comet.core.mesh.children[1]);
+		gColor.setObjectColor(this.color.dark, comet.coma.firstPoint);
+		gColor.setObjectColor(this.color.dark, comet.coma.secondPoint);
+		gColor.setObjectColor(this.color.dark, comet.coma.thirdPoint);
+		gColor.setObjectColor(this.color.dark, comet.coma.fourthPoint);		
+		gColor.setObjectColor(this.color.clear, comet.core.mesh.children[0]);
+		gColor.setObjectColor(this.color.clear, comet.core.mesh.children[1]);
 	}
 
 	for(var i=0; i<this.cometsInUse.length; i++)
 	{
 		var comet = this.cometsInUse[i];
-		gColor.setObjectColor(this.darkColor, comet.coma.firstPoint);
-		gColor.setObjectColor(this.darkColor, comet.coma.secondPoint);
-		gColor.setObjectColor(this.darkColor, comet.coma.thirdPoint);
-		gColor.setObjectColor(this.darkColor, comet.coma.fourthPoint);		
-		gColor.setObjectColor(this.clearColor, comet.core.mesh.children[0]);
-		gColor.setObjectColor(this.clearColor, comet.core.mesh.children[1]);
+		gColor.setObjectColor(this.color.dark, comet.coma.firstPoint);
+		gColor.setObjectColor(this.color.dark, comet.coma.secondPoint);
+		gColor.setObjectColor(this.color.dark, comet.coma.thirdPoint);
+		gColor.setObjectColor(this.color.dark, comet.coma.fourthPoint);		
+		gColor.setObjectColor(this.color.clear, comet.core.mesh.children[0]);
+		gColor.setObjectColor(this.color.clear, comet.core.mesh.children[1]);
 	}
 }
-
-	/*
-		_SPACESHIP
-	*/
-	
-		/*
-			_ENGINE
-		*/
-
-Engine = function()
-{
-	var geometry = new THREE.ConeGeometry(1*0.2, 2*0.2, 3, 1, false, 60*Math.PI/180);
-	var material = new THREE.MeshPhongMaterial({
-												color: 0xecf0f1,
-												specular: 0xecf0f1,
-												transparent: true,
-												opacity: 1
-											});
-
-	this.mesh = new THREE.Mesh(geometry, material);
-	this.mesh.rotation.x = -90*Math.PI/180;
-	this.mesh.position.z = 0.5-0.2;
-	this.angle = 0;
-	this.height = 0;
-}
-
-SpaceShip = function()
-{
-	this.mesh = new THREE.Object3D();
-
-	this.numEngines = 3;
-	this.enginesHeight = 0.5;
-	this.step = Math.PI/6;
-
-	var geomCockpit = new THREE.ConeGeometry(1*0.4, 2*0.4, 3);
-	var matCockpit = new THREE.MeshPhongMaterial({
-												color: 0xecf0f1,
-												specular: 0xecf0f1,
-												transparent: true,
-												opacity: 1
-											});
-	this.cockpit = new THREE.Mesh(geomCockpit, matCockpit);
-	this.cockpit.rotation.x = -90*Math.PI/180;
-	//this.cockpit.rotation.y = 60*Math.PI/180;
-
-	this.firstEngine = new Engine();
-	this.firstEngine.angle = this.step;
-	this.firstEngine.height = this.enginesHeight;
-
-	this.secondEngine = new Engine();
-	this.secondEngine.angle = this.step*5;
-	this.secondEngine.height = this.enginesHeight;
-
-	this.thirdEngine = new Engine();
-	this.thirdEngine.angle = this.step*9;
-	this.thirdEngine.height = this.enginesHeight;
-	
-
-	this.firstEngine.mesh.position.x = Math.cos(this.firstEngine.angle)*this.firstEngine.height;
-	this.firstEngine.mesh.position.y = Math.sin(this.firstEngine.angle)*this.firstEngine.height;
-
-	this.secondEngine.mesh.position.x = Math.cos(this.secondEngine.angle)*this.secondEngine.height;
-	this.secondEngine.mesh.position.y = Math.sin(this.secondEngine.angle)*this.secondEngine.height;
-
-	this.thirdEngine.mesh.position.x = Math.cos(this.thirdEngine.angle)*this.thirdEngine.height;
-	this.thirdEngine.mesh.position.y = Math.sin(this.thirdEngine.angle)*this.thirdEngine.height;
-
-	this.mesh.add(this.cockpit);
-	this.mesh.add(this.firstEngine.mesh);
-	this.mesh.add(this.secondEngine.mesh);
-	this.mesh.add(this.thirdEngine.mesh);
-}
-
-SpaceShip.prototype.move = function(/*keyboard*/mousePos)
-{
-	/*var xPos = this.mesh.position.x, yPos = this.mesh.position.y;;
-
-	if ( keyboard.pressed("left") )
-		xPos -= 0.2;
-	if ( keyboard.pressed("right") )
-		xPos += 0.2;
-	if ( keyboard.pressed("up") )
-		yPos += 0.2;
-	if ( keyboard.pressed("down") )
-		yPos -= 0.2;
-
-	this.mesh.position.x = xPos;
-	this.mesh.position.y = yPos;*/
-	TweenMax.to(this.mesh.position, 1, {x: mousePos.x, y: ( ( mousePos.y > -90) ? mousePos.y : -90 )});
-}
-
-// 2Player: TETRAHEDRON 2, Torus (3, 5)
 
 	/*
 		_STAR
@@ -1952,14 +1957,14 @@ SpaceShip.prototype.move = function(/*keyboard*/mousePos)
 			_RING
 		*/
 
-Ring = function(radius, tube, tubularSegments, opacity)
+Ring = function(color, radius, tube, tubularSegments, opacity)
 {
 	this.speed = 0.05;
 
 	var geomRing = new THREE.TorusGeometry(radius, tube, 2, tubularSegments);
 	var matRing = new THREE.MeshPhongMaterial({
-													color: 0x2c3e50, 
-													specular: 0x2c3e50,
+													color: color.clear.replace('0x', '#'), 
+													/*specular: color.clear.replace('0x', '#'),*/
 													transparent: true,
 													opacity: opacity,
 													side: THREE.DoubleSide
@@ -1971,10 +1976,9 @@ Ring.prototype.rotate = function()
 {
 	this.mesh.rotation.x += this.speed;
 	this.mesh.rotation.y += this.speed;
-	//this.mesh.rotation.z += this.speed;
 }
 
-Star = function()
+Star = function(color)
 {
 	this.mesh = new THREE.Object3D();
 
@@ -1982,7 +1986,6 @@ Star = function()
 	this.tubularSegments = 20
 	this.ringsInUse = [];
 	this.negative = false;
-	//this.tubularSegments = Math.random()*(6-3)+3;
 
 	for(var i=1; i<this.numRings+1; i++)
 	{
@@ -1990,70 +1993,22 @@ Star = function()
 		var tube = radius*0.08;
 		var speed = Math.random()*(0.1-0.05)+0.05;
 
-		var ring = new Ring(radius, tube, this.tubularSegments, 0.8);
+		var ring = new Ring(color, radius, tube, this.tubularSegments, 0.8);
 		ring.mesh.rotation.x = (Math.random()*360)*Math.PI/180;
 
 		ring.speed = speed;
 
-		//ring.mesh.rotation.x = i*12*Math.PI/180;
-
 		this.ringsInUse.push(ring);
 		this.mesh.add(ring.mesh);
 	}
-	
-	this.collisionRings = [];
-	
-	/*var ring = new Ring(0.6, 0.04, this.tubularSegments, 0);
-	ring.mesh.opacity = 0;
-	this.mesh.add(ring.mesh);
-	this.ringsInUse.push(ring);
-
-	var ring = new Ring(0.6, 0.04, this.tubularSegments, 0);
-	ring.mesh.opacity = 0;
-	ring.mesh.rotation.x = 90*Math.PI/180;
-	this.mesh.add(ring.mesh);
-	this.ringsInUse.push(ring);*/
-
-	/*var geometry = new THREE.SphereGeometry(0.1, 10, 10);
-	var material = new THREE.MeshBasicMaterial( {color: 0xbdc3c7, transparent: true, opacity: 0.4, wireframe: true } );
-	this.sphere = new THREE.Object3D();
-	this.sphere.mesh = new THREE.Mesh(geometry, material);
-	this.mesh.add(this.sphere.mesh);
-	this.collisionRings.push(this.sphere)*/
 
 	var geomCore = new THREE.SphereGeometry(0.03, 10, 10);
-	var matCore = new THREE.MeshPhongMaterial({color: 0xbdc3c7,wireframe: true});
+	var matCore = new THREE.MeshPhongMaterial({color: '#ffffff',wireframe: true});
 	this.core = new THREE.Mesh(geomCore, matCore);
 	this.mesh.add(this.core);
-
-	/*var geomSphere = new THREE.SphereGeometry(0.4, 10, 10);
-	var matSphere = new THREE.MeshBasicMaterial({color: 0xbdc3c7, transparent: true, opacity: 0.4});
-	this.sphere = new THREE.Mesh(geomSphere, matSphere);
-	this.mesh.add(this.sphere);*/
 }
 
-var isMobile = {
-    Android: function() {
-        return navigator.userAgent.match(/Android/i);
-    },
-    BlackBerry: function() {
-        return navigator.userAgent.match(/BlackBerry/i);
-    },
-    iOS: function() {
-        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
-    },
-    Opera: function() {
-        return navigator.userAgent.match(/Opera Mini/i);
-    },
-    Windows: function() {
-        return navigator.userAgent.match(/IEMobile/i);
-    },
-    any: function() {
-        return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
-    }
-};
-
-Star.prototype.move = function(joystick)
+Star.prototype.move = function(mousePos, joystick, limit)
 {
 	for(var i=0; i<this.numRings; i++)
 	{
@@ -2061,96 +2016,23 @@ Star.prototype.move = function(joystick)
 		ring.rotate();
 	}
 
-	//this.core.rotation.x += 0.02;
-	//this.core.rotation.y += 0.02;
-	
-	//var posX = this.mesh.position.x, posY = this.mesh.position.y;
-
-	/*if( joystick.right() ){
-		posX += 2;    
-	}
-	if( joystick.left() ){
-		posX -= 2;  
-	}
-	if( joystick.up() ){
-		posY += 2;  
-	}
-	if( joystick.down() ){
-		posY -= 2;  
-	}*/
-
 	if(isMobile.any())
-	{	
+	{
 		var joystickPos = {
 			x: this.mesh.position.x,
 			y: this.mesh.position.y
 		}
 
-		joystickPos.x = joystickPos.x + joystick.deltaX()*(0.05);
-		joystickPos.y = joystickPos.y + joystick.deltaY()*(-0.05);
-		
+		joystickPos.x = joystickPos.x + (!this.negative ? joystick.deltaX()*(0.05) : joystick.deltaX()*(-0.05));
+		joystickPos.y = joystickPos.y + (!this.negative ? joystick.deltaY()*(-0.05) : joystick.deltaY()*(0.05));
+
 		createjs.Tween.get(this.mesh.position, {override: true})
-          .to({x: !( (joystickPos.x > 20) || (joystickPos.x < -20) ) ? joystickPos.x : (joystickPos.x = Math.sign(joystickPos.x)*1*20), y: !( (joystickPos.y > 12) || (joystickPos.y < -12) ) ? joystickPos.y : (joystickPos = Math.sign(joystickPos.y)*1*12)}, 500);
-		
-		//createjs.Tween.removeTweens(this.mesh.position);
-		/*createjs.Tween.get(this.mesh.position, {override: true})
-          .to({x: !( (this.mesh.position.x > 20) || (this.mesh.position.x < -20) ) ? joystickPos.x : this.mesh.position.x, y: !( (this.mesh.position.y > 12) || (this.mesh.position.y < -12) ) ? joystickPos.y : this.mesh.position.y }, 500);*/
-
-		/*if( !( (this.mesh.position.x  > 20) || (this.mesh.position.x  < -20)))
-		{
-			//TweenMax.to(this.mesh.position, 1, {x: joystickPos.x });
-			createjs.Tween.get(this.mesh.position)
-          .to({x: joystickPos.x }, 500);
-		}
-		else
-		{
-			createjs.Tween.get(this.mesh.position)
-          .to({x: Math.sign(joystickPos.x)*-0.5+this.mesh.position.x}, 500);
-		}
-		if( !( (this.mesh.position.y > 12) || (this.mesh.position.y < -12) ))
-		{
-			//TweenMax.to(this.mesh.position, 1, {y: joystickPos.y});
-			createjs.Tween.get(this.mesh.position)
-          .to({y: joystickPos.y}, 500);
-		}
-		else
-		{
-			createjs.Tween.get(this.mesh.position)
-          .to({y: Math.sign(joystickPos.y)*-0.5+this.mesh.position.y}, 500);
-		}*/
-
-
-		/*if( !( (joystickPos.x  > 20) || (joystickPos.x  < -20)))
-		{
-			createjs.Tween.get(this.mesh.position)
-          .to({x: joystickPos.x }, 500);
-		}
-		else
-		{
-			joystickPos.x = Math.sign(joystickPos.x)*1*20;
-			createjs.Tween.get(this.mesh.position)
-          .to({x: joystickPos.x }, 500);
-		}
-		if( !( (joystickPos.y > 12) || (joystickPos.y < -12) ))
-		{
-			createjs.Tween.get(this.mesh.position)
-          .to({y: joystickPos.y}, 500);
-		}
-		else
-		{
-			joystickPos.y = Math.sign(joystickPos.y)*1*12;
-			createjs.Tween.get(this.mesh.position)
-          .to({y: joystickPos.y}, 500);
-		}*/
-
+          .to({x: !( (joystickPos.x > limit.x) || (joystickPos.x < -limit.x) ) ? joystickPos.x : (joystickPos.x = Math.sign(joystickPos.x)*1*limit.x), y: !( (joystickPos.y > limit.y) || (joystickPos.y < -limit.y) ) ? joystickPos.y : (joystickPos = Math.sign(joystickPos.y)*1*limit.y)}, 500);
 	}
 	else
 	{
-		//TweenMax.to(this.mesh.position, 1, {x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y});
-		//createjs.Tween.removeTweens(this.mesh.position);
-		 createjs.Tween.get(this.mesh.position,{override:true})
+		createjs.Tween.get(this.mesh.position,{override:true})
           .to({x: !this.negative ? mousePos.x : -mousePos.x, y: !this.negative ? mousePos.y : -mousePos.y}, 500);
-
 	}
 }
 
@@ -2158,116 +2040,48 @@ StarHolder = function()
 {
 	this.mesh = new THREE.Object3D();
 	this.starsInUse = [];
+	this.maxLife = 12;
+	this.life = this.maxLife;
+	this.limit = {
+		x: 20,
+		y: 12
+	};
 }
 
-StarHolder.prototype.update = function(joystick)
+StarHolder.prototype.update = function(mousePos, joystick)
 {
 	for(var i=0; i<this.starsInUse.length; i++)
 	{
 		var star = this.starsInUse[i];
-		star.move(joystick);
+		star.move(mousePos, joystick, this.limit);
+
+		if(this.starsInUse.length > 1 && !joystick._pressed && isMobile.any())
+		{
+			createjs.Tween.get(star.mesh.position,{override:true})
+          		.to({x: 0, y: 0}, 50);
+		}
 	}
 }
 
 StarHolder.prototype.resetColor = function(gColor, color)
 {
-	//var color = gColor.getRandom();
-
-	//this.darkColor = color.dark;
-	//this.clearColor = color.clear;
 	for(var i =0; i<this.starsInUse.length; i++)
 	{
 		var star = this.starsInUse[i]
 		for(var j=0; j<star.ringsInUse.length; j++)
 		{
 			var ring = star.ringsInUse[j];
-			/*if(i%2==0)
-				gColor.setObjectColor(0xbdc3c7, ring.mesh);
-			else*/
-				gColor.setObjectColor(color, ring.mesh);
+			gColor.setObjectColor(color.clear, ring.mesh);
 		}
 	}
 }
 
-StarHolder.prototype.createStar = function(negative=false)
+StarHolder.prototype.createStar = function(color, negative=false)
 {
-	var star = new Star();
+	var star = new Star(color);
 	star.negative = negative;
 	this.starsInUse.push(star);
-	this.mesh.add(star.mesh);
 }
-
-	/*
-		_ANIMATION
-	*/
-
-	GameAnimation = function()
-	{
-		this.deltaTime = 0;
-		this.newTime = new Date().getTime();
-		this.oldTime = new Date().getTime();
-
-		this.animations = [];
-	}
-
-	GameAnimation.prototype.update = function()
-	{
-		this.newTime = new Date().getTime();
-		this.deltaTime = this.newTime-this.oldTime;
-		this.oldTime = this.newTime;
-
-		for(var i=0; i<this.animations.length; i++)
-		{
-			var animation = this.animations[i];
-			animation.update();
-		}
-	}
-
-	GameAnimation.prototype.Tween = function(object, args, duration)
-	{
-		this.animations.push(new Animation(object, args, duration, this));
-	}
-
-	Animation = function(object, args, duration, gAnimation)
-	{
-		this.object = object;
-		this.args = args;
-		this.duration = duration;
-		this.currentTime = 0;
-		this.step = {};
-		this.gAnimation = gAnimation;
-
-		this.init();
-	}
-
-	Animation.prototype.init = function()
-	{
-		for(var arg in this.args)
-		{
-			this.step[arg] = (this.args[arg]/(this.duration/100))/6;
-		}
-	}
-
-	Animation.prototype.update = function()
-	{
-		if(Math.floor(this.currentTime/100) <= (this.duration/100))
-		{
-			for(var arg in this.args)
-			{
-				if(this.object[arg] <= this.args[arg])
-				{
-					this.object[arg] += this.step[arg];
-				}
-			}
-		}
-		else
-		{
-			this.gAnimation.animations.splice(this.gAnimation.animations.indexOf(this), 1);
-			delete this;
-		}
-		console.log(Math.floor(this.currentTime/100))
-		this.currentTime += this.gAnimation.deltaTime;
-	}
 
 	/*
 		_COLLISIONS
@@ -2278,14 +2092,8 @@ GameCollision = function(game)
 	this.game = game;
 }
 
-/*GameCollision.prototype.group = function(walls, portals, comets)
-{
-	this.collidableMeshList = walls.concat(portals, comets);
-}*/
-
 GameCollision.prototype.update = function()
 {
-	//this.group(walls, portals, comets);
 	var _this = this;
 	for(var i=0; i<this.game.starsHolder.starsInUse.length; i++)
 	{
@@ -2293,8 +2101,6 @@ GameCollision.prototype.update = function()
 		var originPoint = star.mesh.position.clone();
 		for(var j=0; j<star.ringsInUse.length; j++)
 		{
-			//if(j%3 ==0)
-			//{
 				var ring = star.ringsInUse[j];
 				for (var vertexIndex = 0; vertexIndex < ring.mesh.geometry.vertices.length-1; vertexIndex++)
 				{		
@@ -2312,24 +2118,29 @@ GameCollision.prototype.update = function()
 							var collisionMesh = portalsCollision[0].object;
 							var portal = this.game.portalsHolder.portalsInUse[this.game.portalsHolder.portalsList.indexOf(collisionMesh)];
 
-							
-
+							this.game.planetHolder.resetColor(this.game.gColor);
+							this.game.starsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
+							this.game.cometsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
+							this.game.portalsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
 							this.game.wallsHolder.resetColor(this.game.gColor);
-							this.game.planetHolder.resetColor(this.game.gColor, this.game.cometsHolder, this.game.portalsHolder);
-
-							this.game.starsHolder.resetColor(this.game.gColor, this.game.planetHolder.clearColor)
-
-							this.game.renderer.setClearColor(this.game.wallsHolder.clearColor.replace('0x', '#'));
+							this.game.renderer.setClearColor(this.game.wallsHolder.color.clear.replace('0x', '#'));
 
 							this.game.portalsHolder.portalsList.splice(this.game.portalsHolder.portalsList.indexOf(collisionMesh), 1);
-							
-							TweenMax.to(portal.mesh.scale, 0.1, {x: 200, y: 200, z: 200, onComplete: function(){
+
+							createjs.Tween.get(portal.mesh.scale,{override:true})
+          						.to({x: 200, y: 200, z: 200}, 100)
+          						.call(function(){
 									_this.game.portalsHolder.mesh.remove(portal.mesh);
-									TweenMax.to(_this.game.blurPass.params.delta, 0.3, {x: 50, onComplete: function(){
-									TweenMax.to(_this.game.blurPass.params.delta, 0.3, {x:0});
-								}});
-							}});
-							this.game.gScore.portalScore++;
+									createjs.Tween.get(_this.game.blurPass.params.delta,{override:true})
+        							  .to({x: 50}, 250)
+        							  .call(function(){
+										createjs.Tween.get(_this.game.blurPass.params.delta,{override:true})
+         								 .to({x:0}, 250);
+									});
+							});
+
+							this.game.gScore.portalScoreUpdate();
+							this.game.gDOM.resetColors();
 						}
 					}
 					
@@ -2339,9 +2150,12 @@ GameCollision.prototype.update = function()
 						if ( wallsCollision.length > 0 && wallsCollision[0].distance < directionVector.length() )
 						{
 
-							TweenMax.to(star.mesh.scale, 0.1, {x: 2, y: 2, z: 2, onComplete: function(){
-								TweenMax.to(star.mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-							}});
+							 createjs.Tween.get(star.mesh.scale,{override:true})
+        					  .to({x: 2, y: 2, z: 2}, 100)
+        					  .call(function(){
+								createjs.Tween.get(star.mesh.scale,{override:true})
+          							.to({x: 1, y: 1, z: 1}, 200);
+							});
 
 							var wall = wallsCollision[0].object;
 							
@@ -2351,18 +2165,29 @@ GameCollision.prototype.update = function()
 	
 							this.game.wallsHolder.mesh.remove(wall);
 							this.game.scene.add(particleWall);
-							//TweenMax.to(particleWall.material, 2, {size: 0.1, onUpdate: function(){particleWall.geometry.verticesNeedUpdate = true}, onComplete: function(){_this.game.scene.remove(particleWall);}});
 
-							createjs.Tween.get(particleWall.material, {override:true})
-          						.to({size: 0.1}, 2000).call(function(){_this.game.scene.remove(particleWall);}).addEventListener('change', function(){particleWall.geometry.verticesNeedUpdate = true});
+							createjs.Tween.get(particleWall.material,{override:true})
+        					  .to({size: 0.}, 2000)
+        					  .call(function(){
+        					  	_this.game.scene.remove(particleWall);
+        					 })
+        					  .addEventListener('change', function(){
+        					  	particleWall.geometry.verticesNeedUpdate = true;
+        					  });
 
 						    for(var i=0; i<particleWall.geometry.vertices.length; i++)
 						    {
 						    	var point = particleWall.geometry.vertices[i];
 
-						    	TweenMax.to(point, 10, {x: Math.random()*(50+50)-50, y: Math.random()*(50+50)-50, z: Math.random()*(50+50)-50});
+						    	createjs.Tween.get(point, {override:true})
+         							.to({x: Math.random()*(50+50)-50, y: Math.random()*(50+50)-50, z: Math.random()*(50+50)-50}, 10000);
 						    }
-						    this.game.gScore.wallScore++;
+						    if(this.game.starsHolder.life > 0)
+						    {
+							    this.game.starsHolder.life--;
+							    this.game.gScore.wallScoreUpdate();
+							    this.game.gDOM.updateLife(this.game.starsHolder.life, this.game.starsHolder.maxLife);
+						    }
 						} 
 					}
 
@@ -2378,32 +2203,29 @@ GameCollision.prototype.update = function()
 							this.game.cometsHolder.cometsList.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1);
 
 							this.game.ambientLight.intensity = 0.8;
-							TweenMax.to(this.game.ambientLight, 0.5, {intensity: 0.6});
+							createjs.Tween.get(this.game.ambientLight, {override:true})
+         							.to({intensity: 0.6}, 500);
 
-							var s = star;
-							TweenMax.to(s.mesh.scale, 0.1, {x: 0.1, y: 0.1, z: 0.1, onComplete: function(){
-									TweenMax.to(s.mesh.scale, 0.2, {x: 1, y: 1, z: 1});
-								}});
-							
+							var starMesh = star.mesh;
+
+							createjs.Tween.get(starMesh.scale, {override:true})
+         						.to({x: 0.1, y: 0.1, z: 0.1}, 50)
+         						.call(function(){
+									createjs.Tween.get(starMesh.scale, {override:true})
+         							.to({x: 1, y: 1, z: 1}, 150);
+							});
+
 							this.game.cometsHolder.mesh.remove(comet.mesh);
-							this.game.gScore.cometScore++;
+							this.game.gScore.cometScoreUpdate();
 						}
 					}
 
-					// Use index of to get position from value this.wallsHolder.wallsInUse.splice(this.wallsHolder.wallsInUse.indexOf(wallsCollision[0].object), 1); === array.indexOf(value);
-
 				}
-			//}
 		}	
 	}
 }
 
-GameCollision.prototype.collision = function(holder)
-{
-
-}
-
-// _LOOP //
+/* LOOP */
 
 function loop()
 {
@@ -2413,46 +2235,46 @@ function loop()
 	}
 	else if(game.status == 'finished')
 	{
-		// Ending animation, score calculations
 		game.end();
 	}
 	else if(game.status == 'paused')
 	{
-		// Show pause menu
 		game.pause();
 	}
 	else if(game.status == 'waiting')
 	{
-		// Show score and wait for replay
 		game.wait();
 	}
 	else if(game.status == 'init')
 	{
-		game.initStart();
+		game.initStart(); /* Add objects removed by game.load() */
 	}
-	else if(game.status = 'start')
+	else if(game.status == 'start')
 	{
 		game.start();
 	}
+	else if(game.status == 'loading')
+	{
+		/* LOADING ANIMATION (remove objects and show loader)*/
+		game.load();
+		
+	}
 
-	this.game.render();
+	game.render();
 	requestAnimationFrame(loop);
 }
 
-// _INITIALIZATION //
+
+/* _INITIALIZATION */
 
 var game;
-var gAnimation = new GameAnimation();
- var stage = new createjs.Stage("demoTween");
- createjs.Ticker.setFPS(60);
-        createjs.Ticker.addEventListener("tick", stage);
+
 function init()
 {
 	game = new Game();
 
 	game.initVariables();
 	game.createObjects();
-	game.initCollisions();
 
 	loop();
 }

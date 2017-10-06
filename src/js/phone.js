@@ -73,6 +73,35 @@ Game.prototype.initVariables = function()
 		_FUNCTIONS
 	*/
 
+Game.prototype.removeObjects = function()
+{
+	this.scene.remove(this.planetHolder.mesh);
+	this.scene.remove(this.wallsHolder.mesh);
+	this.scene.remove(this.portalsHolder.mesh);
+	this.scene.remove(this.cometsHolder.mesh);
+	for(var i=0; i<this.starsHolder.starsInUse.length; i++)
+	{
+		var star = this.starsHolder.starsInUse[i];
+		this.scene.remove(star.mesh);
+	}
+}
+
+Game.prototype.resetObjects = function()
+{
+	this.scene.add(this.planetHolder.mesh);
+	this.scene.add(this.wallsHolder.mesh);
+	this.scene.add(this.portalsHolder.mesh);
+	this.scene.add(this.cometsHolder.mesh);
+	this.scene.add(this.cometsHolder.mesh);
+	var _this = this;
+	createjs.Tween.get(this.blurPass.params.delta, {override:true})
+        .to({x: 50}, 250)
+        .call(function(){
+			createjs.Tween.get(_this.blurPass.params.delta, {override:true})
+          		.to({x:0}, 250);
+	});
+}
+
 Game.prototype.update = function()
 {
 	this.updateObjects();
@@ -331,6 +360,12 @@ Game.prototype.resetVariables = function()
 		_FUNCTIONS
 	*/
 
+Game.prototype.load = function()
+{
+	this.gDOM.loadEvent();
+	this.removeObjects();
+}
+
 Game.prototype.wait = function()
 {
 	if(isMobile.any())
@@ -386,6 +421,8 @@ Game.prototype.initStart = function()
 	var _this = this;	
 
 	this.resetVariables();
+	this.resetObjects();
+	this.gDOM.startEvent();
 	this.gDOM.resetColors();
 
 	this.scene.add(this.starsHolder.starsInUse[0].mesh);
@@ -662,6 +699,9 @@ GameDOM = function(game)
 		life: document.getElementById("lifeRectFront"),
 		div: document.getElementById("score")
 	}
+	this.loader = {
+		div: document.getElementById("loader")
+	}
 
 	this.gameContainer = document.getElementById("gameContainer");
 }
@@ -786,6 +826,21 @@ GameDOM.prototype.pauseEvent = function()
 		}
 		_this.game.status = 'waiting';
 	});
+}
+
+GameDOM.prototype.loadEvent = function()
+{
+	this.loader.div.style.display = 'block';
+	this.pause.div.style.display = 'none';
+	this.gameContainer.style.opacity = 1;
+	this.score.div.style.display = 'none';
+	this.intro.div.style.display = 'none';
+	this.progression.div.style.display = 'none';
+}
+
+GameDOM.prototype.startEvent = function()
+{
+	this.loader.div.style.display = 'none';
 }
 
 GameDOM.prototype.resetColors = function()
@@ -2153,7 +2208,7 @@ Launcher.prototype.loop = function()
 	}
 	else if(this.game.status == 'loading')
 	{
-		/* LOADING ANIMATION */
+		this.game.load();
 	}
 
 	this.game.render();
