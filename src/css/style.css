@@ -32,20 +32,21 @@ body{
 
 #intro>h1{
 	font-size: 4vw;
-	color: #000000;
-	opacity: 0.8;
+	color: #222d3b;
+	/*opacity: 0.8;*/
 }
 
 #intro>p{
-	font-size: 1vw;
+	font-size: 2vw;
 	color: #ffffff;
 	opacity: 0.8;
+	margin-bottom: 2%;
 }
 
 
 #intro>#owlCarousel{
 	width: 60vw;
-	margin-top: 10%;
+	margin-top: 4%;
 }
 
 .item{
@@ -61,15 +62,15 @@ body{
  	flex: 1 1 auto;
  	margin: auto;
  	padding: 20px;
- 	border: 2px solid #f7f7f7;
+ 	border: 2px solid #ffffff;
  	text-transform: uppercase;
  	overflow:hidden;
  	transition: 0.3s;
  	font-size: 1.5vw;
 	margin-top: 5%;
 	cursor: pointer;
-	color: #000000;
-	opacity: 0.8;
+	color: #222d3b;
+	/*opacity: 0.8;*/
 	width: 6vw;
 }
 
@@ -77,6 +78,65 @@ body{
   	cursor: pointer;
   	transform: scale(0.8);
 }
+
+
+/* MODE */
+
+.transition {
+  -webkit-transition: all 0.2s ease;
+  -moz-transition: all 0.2s ease;
+  -ms-transition: all 0.2s ease;
+  -o-transition: all 0.2s ease;
+  transition: all 0.2s ease;
+}
+#switch {
+  font-size: 0;
+  background-color: #2a3a47;
+  display: inline-block;
+  color: #82909b;
+  padding: 4px;
+  vertical-align: middle;
+}
+#switch .choice {
+  font-size: 16px;
+  width: 100px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  padding: 8px;
+  display: inline-block;
+  cursor: pointer;
+  -webkit-transition: all 0.2s ease;
+  -moz-transition: all 0.2s ease;
+  -ms-transition: all 0.2s ease;
+  -o-transition: all 0.2s ease;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+#switch .choice.on {
+  color: #fff;
+  background-color: #222d3b;
+}
+
+#switch .diamond {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-top: 19px;
+  margin-left: 116px;
+  background: #2a3a47;
+  -webkit-transform: rotate(-45deg);
+  -moz-transform: rotate(-45deg);
+  -ms-transform: rotate(-45deg);
+  -o-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+  -webkit-transform-origin: 0 100%;
+  -moz-transform-origin: 0 100%;
+  -ms-transform-origin: 0 100%;
+  -o-transform-origin: 0 100%;
+  transform-origin: 0 100%;
+}
+
 
 /* RIGHT SCORE */
 
@@ -100,7 +160,7 @@ body{
 
 #score>#text{
 	text-align: right;
-	font-size: 1vw;
+	font-size: 1.5vw;
 }
 
 /* LIFE */
@@ -116,9 +176,9 @@ body{
 
 #lifeRectBgr{
 	position: absolute;
-	opacity: 0.4;
+	opacity: 0.2;
 	width: 10vw;
-	height: 0.6vh;
+	height: 1vh;
 	background: #ffffff;
 }
 
@@ -126,8 +186,8 @@ body{
 	position: absolute;
 	opacity: 0.8;
 	width: 10vw;
-	height: 0.6vh;
-	background: #000000;
+	height: 1vh;
+	background: #222d3b;
 }
 
 
@@ -135,27 +195,28 @@ body{
 
 #pause{
 	position: absolute;
-	left: 45vw;
+	left: 43vw;
 	top: 25vh;
 	text-align: center;
-	font-size: 1vw;
+	font-size: 2vw;
 	display: none;
 }
 
 #pause>div{
 	margin-top: 10%;
-	color: #000000;
-	opacity: 0.8;
+	color: #ffffff;
+	/*opacity: 0.8;*/
 }
 
 #pause>#resume {
 	  flex: 1 1 auto;
 	  margin: 5px;
 	  padding: 20px;
-	  border: 2px solid #f7f7f7;
+	  border: 0.5px solid #ffffff;
 	  text-transform: uppercase;
 	  overflow:hidden;
 	  transition: 0.3s;
+	  background: #222d3b;
 }
 
 #pause>#resume:hover{
@@ -167,10 +228,11 @@ body{
 	  flex: 1 1 auto;
 	  margin: 5px;
 	  padding: 20px;
-	  border: 2px solid #f7f7f7;
+	  border: 0.5px solid #ffffff;
 	  text-transform: uppercase;
 	  overflow:hidden;
 	  transition: 0.3s;
+	  background: #222d3b;
 }
 
 #pause>#reset:hover{
@@ -182,10 +244,11 @@ body{
 	  flex: 1 1 auto;
 	  margin: 5px;
 	  padding: 20px;
-	  border: 2px solid #f7f7f7;
+	  border: 0.5px solid #ffffff;
 	  text-transform: uppercase;
 	  overflow:hidden;
 	  transition: 0.3s;
+	  background: #222d3b;
 }
 
 #pause>#changeMusic:hover{
@@ -234,6 +297,7 @@ body{
 
 #scores div{
 	margin-top: 2%;
+	text-align: center;
 }
 
 #scores .score-points{
@@ -244,12 +308,12 @@ body{
 
 #scores .score-text{
 	font-size: 2vw;
-  	color: #000000;
-  	opacity: 0.8;
+  	color: #222d3b;
+  	/*opacity: 0.8;*/
 }
 
 #scores .score-text span{
-	font-size: 0.6vw;
+	font-size: 1vw;
 	color: #ffffff;
 	opacity: 0.8;
 }
@@ -271,12 +335,13 @@ body{
 }
 
 #progression>#percent{
+	text-align: right;
 	font-size: 3vw;
 }
 
 #progression>#progressionText{
 	text-align: right;
-	font-size: 1vw;
+	font-size: 1.5vw;
 }
 
 .progression-rect {
@@ -292,7 +357,7 @@ body{
 	position: absolute;
 	opacity: 0.4;
 	width: 10vw;
-	height: 0.6vh;
+	height: 1vh;
 	background: #ffffff;
 }
 
@@ -300,18 +365,18 @@ body{
 	position: absolute;
 	opacity: 0.8;
 	width: 10vw;
-	height: 0.6vh;
-	background: #000000;
+	height: 1vh;
+	background: #222d3b;
 }
 
 
 /* REPLAY/CHANGE */
 
 .choice-buttons{
-	position: absolute;
-	top: 50vh;
+	position: relative;
+	top: 15vh;
   	text-align: center;
-  	font-size: 1vw;
+  	font-size: 1.5vw;
 }
 
 #choiceButtons{
@@ -325,11 +390,12 @@ body{
 	  flex: 1 1 auto;
 	  margin: 5px;
 	  padding: 20px;
-	  border: 2px solid #f7f7f7;
+	  border: 0.5px solid #ffffff;
 	  text-transform: uppercase;
 	  overflow:hidden;
 	  transition: 0.3s;
-	  color: #000000;
+	  color: #ffffff;
+	  background: #222d3b;
 	  opacity: 0.8;
 }
 

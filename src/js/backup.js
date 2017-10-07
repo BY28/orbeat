@@ -54,7 +54,7 @@
 		SET MAX PERCENT TO 100 -DONE-
 
 		TRY TO ADD SHADER PLANE IN BACKGROUND 											<----------
- 		ONCLICK:REMOVE OBJECTS > SHOW LOADER > ADD OBJECTS > PLAY SOUND/BEGIN GAME     	<----------
+ 		ONCLICK:REMOVE OBJECTS > SHOW LOADER > ADD OBJECTS > PLAY SOUND/BEGIN GAME     	<---------- -DONE-
 	
 
 */
@@ -123,6 +123,8 @@ Game.prototype.initVariables = function()
 
 	this.worldColor = this.gColor.colors.darkBlue;
 	this.objectsColor = this.gColor.colors.white;
+
+	this.mode = "orb";
 
 	this.renderer.setClearColor(this.worldColor.clear.replace('0x', '#'));
 	
@@ -487,6 +489,7 @@ Game.prototype.initStart = function()
 	this.gDOM.startEvent();
 	this.gDOM.resetColors();
 
+	this.addStars();
 	this.scene.add(this.starsHolder.starsInUse[0].mesh);
 
 	createjs.Tween.get(this.starsHolder.starsInUse[0].mesh.scale, {override:true})
@@ -642,8 +645,16 @@ Game.prototype.addComets = function()
 Game.prototype.addStars = function()
 {
 	this.starsHolder = new StarHolder();
-	this.starsHolder.createStar(this.objectsColor);
-	/*this.starsHolder.createStar(this.objectsColor, true);*/
+	if(this.mode == "twins")
+	{
+		this.starsHolder.createStar(this.objectsColor);
+		this.starsHolder.createStar(this.objectsColor, true);
+	}
+	else
+	{
+		this.starsHolder.createStar(this.objectsColor);
+	}
+	
 	this.scene.add(this.starsHolder.mesh);
 }
 
@@ -728,6 +739,7 @@ GameDOM = function(game)
 		description: document.getElementById("description"),
 		play: document.getElementById("play"),
 		sounds: document.getElementsByClassName("item"),
+		choices: document.getElementsByClassName("choice"),
 		div: document.getElementById("intro")
 	};
 
@@ -803,6 +815,23 @@ GameDOM.prototype.introEvent = function()
 																		_this.game.gAudio.onLoad = !_this.game.gAudio.onLoad;
    																	}
    																
+   																} , false);
+	}
+	for (var i = 0; i < this.intro.choices.length; i++) 
+	{
+   		this.intro.choices[i].addEventListener('click', function(){ 
+   																	if(this.getAttribute('data-mode') != _this.game.mode)
+   																	{	
+	   																	this.classList.add("on");
+	   																	_this.game.mode =  this.getAttribute('data-mode');
+	   																	for (var j = 0; j < _this.intro.choices.length; j++)
+	   																	{
+	   																		if(_this.intro.choices[j] != this)
+	   																		{
+	   																			_this.intro.choices[j].classList.remove("on");
+	   																		}
+	   																	}
+   																	}
    																} , false);
 	}
 }
@@ -2124,6 +2153,9 @@ GameCollision.prototype.update = function()
 							this.game.portalsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
 							this.game.wallsHolder.resetColor(this.game.gColor);
 							this.game.renderer.setClearColor(this.game.wallsHolder.color.clear.replace('0x', '#'));
+
+							this.game.objectsColor = this.game.planetHolder.color;
+							this.game.worldColor = this.game.wallsHolder.color;
 
 							this.game.portalsHolder.portalsList.splice(this.game.portalsHolder.portalsList.indexOf(collisionMesh), 1);
 
