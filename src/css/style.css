@@ -160,7 +160,7 @@ body{
 
 #score>#text{
 	text-align: right;
-	font-size: 1.5vw;
+	font-size: 1.2vw;
 }
 
 /* LIFE */
@@ -341,7 +341,7 @@ body{
 
 #progression>#progressionText{
 	text-align: right;
-	font-size: 1.5vw;
+	font-size: 1.2vw;
 }
 
 .progression-rect {

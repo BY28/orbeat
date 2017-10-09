@@ -616,9 +616,13 @@ Game.prototype.addPlanet = function()
 	this.planetHolder.createPlanet();
 	this.planetHolder.createSatellites();
 	this.planetHolder.createFragments();
+	this.planetHolder.createShockwaves();
 
 	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
 	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
+	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, 0, 250);
+
+	this.planetHolder.shockwavesHolder.decayRate = 0.5;
 
 	this.scene.add(this.planetHolder.mesh);
 }
@@ -1299,33 +1303,33 @@ WallsHolder.prototype.spawnWalls = function()
 	var numWalls = 1;
 	if(this.wallsInUse.length < 6)
 	{
-	for(var i=0; i<numWalls; i++)
-	{
-		if(this.wallsPool.length)
+		for(var i=0; i<numWalls; i++)
 		{
-			wall = this.wallsPool.pop();
+			if(this.wallsPool.length)
+			{
+				wall = this.wallsPool.pop();
+			}
+			else
+			{
+				wall = new Wall(this.color);
+			}
+
+			wall.angle = Math.random()*Math.PI*2/numWalls;
+			wall.height = 25;
+			wall.mesh.position.x = Math.cos(wall.angle)*wall.height;
+			wall.mesh.position.y = Math.sin(wall.angle)*wall.height;
+			wall.mesh.position.z = -100;
+			wall.mesh.scale.z = 0.1;
+
+			wall.mesh.lookAt(new THREE.Vector3( (Math.random()*(25+25)-25) , (Math.random()*(25+25)-25) , wall.mesh.position.z));
+
+			createjs.Tween.get(wall.mesh.scale, {override:true})
+	        	.to({z: 250}, (1/this.speed)*1000);
+
+			this.mesh.add(wall.mesh);
+			this.wallsInUse.push(wall);
+			this.wallsList.push(wall.mesh);
 		}
-		else
-		{
-			wall = new Wall(this.color);
-		}
-
-		wall.angle = Math.random()*Math.PI*2/numWalls;
-		wall.height = 25;
-		wall.mesh.position.x = Math.cos(wall.angle)*wall.height;
-		wall.mesh.position.y = Math.sin(wall.angle)*wall.height;
-		wall.mesh.position.z = -100;
-		wall.mesh.scale.z = 0.1;
-
-		wall.mesh.lookAt(new THREE.Vector3( (Math.random()*(25+25)-25) , (Math.random()*(25+25)-25) , wall.mesh.position.z));
-
-		createjs.Tween.get(wall.mesh.scale, {override:true})
-        	.to({z: 250}, (1/this.speed)*1000);
-
-		this.mesh.add(wall.mesh);
-		this.wallsInUse.push(wall);
-		this.wallsList.push(wall.mesh);
-	}
 	}
 }
 
@@ -1507,6 +1511,78 @@ Fragment.prototype.move = function()
 }
 
 	/*
+		_SHOCKWAVES
+	*/
+
+Shockwave = function(color)
+{
+	var geomLayer = new THREE.TorusGeometry(15, 0.01, 2, 50);
+	var matLayer = new THREE.MeshPhongMaterial({
+													color: color.clear.replace('0x', '#'), 
+													specular: color.clear.replace('0x', '#'),
+													transparent: true,
+													opacity: 0.8,
+													side: THREE.DoubleSide
+												});
+	this.mesh = new THREE.Mesh(geomLayer, matLayer);
+}
+
+ShockwavesHolder =function()
+{
+	this.mesh = new THREE.Object3D();
+	this.shockwavesPool = [];
+	this.shockwavesInUse = [];
+
+	this.color;
+}
+
+ShockwavesHolder.prototype.spawnShockwave = function(magnitude)
+{
+    var numShockwaves = 1;
+	if(this.shockwavesInUse.length < 6)
+	{
+		for(var i=0; i<numShockwaves; i++)
+		{
+			var shockwave;
+			if(this.shockwavesPool.length)
+			{
+				shockwave = this.shockwavesPool.pop();
+			}
+			else
+			{
+				shockwave = new Shockwave(this.color);
+			}
+			var _this = this;
+
+			shockwave.mesh.scale.set(0.1, 0.1, 0.1);
+			this.mesh.add(shockwave.mesh);
+			this.shockwavesInUse.push(shockwave);
+
+			createjs.Tween.get(shockwave.mesh.scale, {override:true})
+	        	.to({x: 25, y: 25, z: 25}, 2000);
+		}
+	}
+}
+
+ShockwavesHolder.prototype.update = function(gAudio)
+{
+	if(gAudio.check(this))
+	{
+		this.spawnShockwave(gAudio.magnitude);
+	}
+
+	for(var i=0; i<this.shockwavesInUse.length; i++)
+	{
+		var shockwave = this.shockwavesInUse[i];
+		if(shockwave.mesh.scale.x >= 25)
+		{	
+			this.shockwavesPool.unshift(this.shockwavesInUse.splice(i, 1)[0]);
+			this.mesh.remove(shockwave.mesh);
+		}
+	}
+}
+
+	/*
 		_PLANETHOLDER
 	*/
 
@@ -1590,10 +1666,25 @@ PlanetHolder.prototype.moveFragments = function()
 	}
 }
 
+PlanetHolder.prototype.createShockwaves = function()
+{
+	this.shockwavesHolder = new ShockwavesHolder();
+	this.shockwavesHolder.color = this.color;
+
+	for(var i=0; i<6; i++)
+	{
+		var shockwave = new Shockwave(this.color);
+		this.shockwavesHolder.shockwavesPool.push(shockwave);
+	}
+
+	this.mesh.add(this.shockwavesHolder.mesh);
+}
+
 PlanetHolder.prototype.update = function(gAudio)
 {
 	this.atmosphere.move(gAudio);
 	this.planet.move(gAudio);
+	this.shockwavesHolder.update(gAudio);
 
 	this.planet.mesh.rotation.y += 0.0005;
 	this.planet.mesh.rotation.z += 0.005;

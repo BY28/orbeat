@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>ORBEAT - Live the music</title>
+	<link rel="stylesheet" type="text/css" href="src/css/style.css">
+	<link rel="stylesheet" type="text/css" href="src/css/loader.css">
+	<link rel="stylesheet" type="text/css" href="src/css/animate.min.css">
+	<link rel="stylesheet" type="text/css" href="src/css/owl.carousel.min.css">
+	<link rel="stylesheet" type="text/css" href="src/css/owl.theme.default.min.css">
+</head>
+<body>
+
+	<div class="game-container" id="gameContainer">	
+
+		<div id="intro" class='animated fadeIn'>
+		
+			<h1 id="title">ORBEAT</h1>
+			<p id="description">LIVE THE MUSIC</p>
+
+			<!-- MODE -->
+			<div id="switch">
+			  <!--.or.animated OR-->
+			  <div class="diamond"></div>
+			  <div class="choice on" data-mode="orb">ORB</div>
+			  <div class="choice" data-mode="twins">TWINS</div>
+			</div>
+
+			<div class="owl-carousel owl-theme" id="owlCarousel">
+	   			<div class="item" data-sound="monody.mp3" id="monody"><img src="assets/images/monody.jpg" width="100%"></div>
+	   			<div class="item" data-sound="timelapse.mp3"><img src="assets/images/timelapse.jpg" width="100%"></div>
+	   			<div class="item" data-sound="unity.mp3"><img src="assets/images/unity.jpg" width="100%"></div>
+	   			<div class="item" data-sound="thecalling.mp3"><img src="assets/images/thecalling.jpg" width="100%"></div>
+	   			<div class="item" data-sound="prelude.mp3"><img src="assets/images/prelude.jpg" width="100%"></div>
+	   			<div class="item" data-sound="jackpot.mp3"><img src="assets/images/jackpot.jpg" width="100%"></div>
+	   			<div class="item" data-sound="windfall.mp3"><img src="assets/images/windfall.jpg" width="100%"></div>
+	   			<div class="item" data-sound="xenogenesis.mp3"><img src="assets/images/xenogenesis.jpg" width="100%"></div>
+	   			<div class="item" data-sound="neverbealone.mp3"><img src="assets/images/neverbealone.jpg" width="100%"></div>
+	   			<div class="item" data-sound="flyaway.mp3"><img src="assets/images/flyaway.jpg" width="100%"></div>
+			</div>
+
+		</div>
+
+		<div id="loader">
+			<ul>
+				<li class="loader-bar"></li>
+			    <li class="loader-bar"></li>
+			    <li class="loader-bar"></li>
+			    <li class="loader-bar"></li>
+			    <li class="loader-bar"></li>
+			    <li class="loader-bar"></li>
+			</ul>
+		</div>
+
+		<div id="score" class="animated fadeInLeft">
+			
+			<div id="text">SCORE</div><div id="points">0</div>
+
+			<div class="life-rect" id="lifeRect">
+				<div id="lifeRectBgr"></div>
+  				<div id="lifeRectFront"></div>
+			</div>
+		
+		</div>
+
+
+		<div id="pause" class="animated bounceIn">
+
+			<div id="resume">RESUME</div>
+			<div id="reset">REPLAY</div>
+			<div id="changeMusic">CHANGE</div>
+
+		</div>
+
+		<div id="scores">
+			
+			<div id="portalScore" class="animated fadeInDown"> 
+			
+				<div class="score-text">PORTALS<span>+1000</span></div> 
+				<span id="portalPoints" class="score-points">0</span> 
+
+			</div>
+			
+			<div id="cometScore" class="animated fadeInDown"> 
+
+				<div class="score-text">COMETS<span>+100</span></div> 
+				<span id="cometPoints" class="score-points">0</span> 
+
+			</div>
+			
+			<div id="wallScore" class="animated fadeInDown"> 
+
+				<div class="score-text">WALLS<span>-1500</span></div> 
+				<span id="wallPoints" class="score-points">0</span> 
+
+			</div>
+			
+			<div id="totalScore" class="animated fadeInDown"> 
+
+				<div class="score-text">SCORE</div>
+				<span id="scorePoints" class="score-points">0</span> 
+
+			</div>
+		
+			<div id="choiceButtons" class="choice-buttons animated fadeIn">	
+
+				<div id="change">CHANGE</div>
+				<div id="replay">REPLAY</div>
+
+			</div>
+
+		</div>
+
+		<div id="progression" class="animated fadeInLeft">
+			
+			<div id="progressionText">PROGRESSION</div><div id="percent">0 %</div>
+
+			<div class="progression-rect" id="progressionRect">
+				<div id="progressionRectBgr"></div>
+  				<div id="progressionRectFront"></div>
+			</div>
+		
+		</div>
+		
+		<div id="webglContainer"></div>
+	</div>
+
+	<script type="text/javascript" src="src/js/three.js"></script>*
+	<script type="text/javascript" src="src/js/createjs.min.js"></script>
+	<script type="text/javascript" src="src/js/postprocessing/Wagner.js"></script>
+	<script type="text/javascript" src="src/js/postprocessing/Wagner.base.js"></script>
+	<script type="text/javascript" src="src/js/jquery.min.js"></script>
+	<script type="text/javascript" src="src/js/owl.carousel.min.js"></script>
+	<script type="text/javascript" src="src/js/virtualjoystick.js"></script>
+	<script type="text/javascript" src="src/js/webaudio.js"></script>
+	
+	
+	<script type="text/javascript" src="src/js/shockwave.js"></script>
+
+	<script type="text/javascript">
+		$('.owl-carousel').owlCarousel({
+		    items: 3,
+		    margin: 30,
+		    nav:true,
+		    loop:true,
+		    center: true,
+		    dots: false
+		});
+
+	
+	</script>
+</body>
+</html>
