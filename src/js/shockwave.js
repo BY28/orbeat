@@ -375,6 +375,19 @@ Game.prototype.resetVariables = function()
 		}
 	}
 
+	if(this.planetHolder.shockwavesHolder.shockwavesInUse.length)
+	{
+		for(var i=0; i<this.planetHolder.shockwavesHolder.shockwavesInUse.length; i++)
+		{
+			var shockwave = this.planetHolder.shockwavesHolder.shockwavesInUse[i];
+			if(shockwave.mesh.scale.x >= 25)
+			{	
+				this.planetHolder.shockwavesHolder.shockwavesPool.unshift(this.planetHolder.shockwavesHolder.shockwavesInUse.splice(i, 1)[0]);
+				this.planetHolder.shockwavesHolder.mesh.remove(shockwave.mesh);
+			}
+		}
+	}
+
 	/* GLOBAL */
 
 	this.speedLastUpdate = 0;
@@ -620,9 +633,7 @@ Game.prototype.addPlanet = function()
 
 	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
 	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
-	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, 0, 250);
-
-	this.planetHolder.shockwavesHolder.decayRate = 0.5;
+	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, 150, 250);
 
 	this.scene.add(this.planetHolder.mesh);
 }
@@ -1516,12 +1527,12 @@ Fragment.prototype.move = function()
 
 Shockwave = function(color)
 {
-	var geomLayer = new THREE.TorusGeometry(15, 0.01, 2, 50);
+	var geomLayer = new THREE.RingGeometry(26, 30, 30);
 	var matLayer = new THREE.MeshPhongMaterial({
 													color: color.clear.replace('0x', '#'), 
 													specular: color.clear.replace('0x', '#'),
 													transparent: true,
-													opacity: 0.8,
+													opacity: 0.04,
 													side: THREE.DoubleSide
 												});
 	this.mesh = new THREE.Mesh(geomLayer, matLayer);
