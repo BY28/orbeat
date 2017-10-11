@@ -309,6 +309,19 @@ Game.prototype.resetVariables = function()
 		}
 	}
 
+	if(this.planetHolder.shockwavesHolder.shockwavesInUse.length)
+	{
+		for(var i=0; i<this.planetHolder.shockwavesHolder.shockwavesInUse.length; i++)
+		{
+			var shockwave = this.planetHolder.shockwavesHolder.shockwavesInUse[i];
+			if(shockwave.mesh.scale.x >= 25)
+			{	
+				this.planetHolder.shockwavesHolder.shockwavesPool.unshift(this.planetHolder.shockwavesHolder.shockwavesInUse.splice(i, 1)[0]);
+				this.planetHolder.shockwavesHolder.mesh.remove(shockwave.mesh);
+			}
+		}
+	}
+
 	/* GLOBAL */
 
 	this.speedLastUpdate = 0;
@@ -550,9 +563,11 @@ Game.prototype.addPlanet = function()
 	this.planetHolder.createPlanet();
 	this.planetHolder.createSatellites();
 	this.planetHolder.createFragments();
+	this.planetHolder.createShockwaves();
 
 	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
 	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
+	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, 150, 250);
 
 	this.scene.add(this.planetHolder.mesh);
 }
@@ -787,7 +802,10 @@ GameDOM.prototype.endEvent = function()
 	this.scores.walls.innerHTML = this.game.gScore.wallScore;
 	this.scores.total.innerHTML = this.game.gScore.score;
 
-	this.game.joystick.reset();
+	if(isMobile.any())
+	{
+		this.game.joystick.reset();
+	}
 
 	this.updateProgression();
 
@@ -1440,6 +1458,78 @@ Fragment.prototype.move = function()
 	this.mesh.rotation.y += 0.01;
 }
 
+		/*
+			_SHOCKWAVES
+		*/
+
+Shockwave = function(color)
+{
+	var geomLayer = new THREE.RingGeometry(26, 30, 30);
+	var matLayer = new THREE.MeshPhongMaterial({
+													color: color.clear.replace('0x', '#'), 
+													specular: color.clear.replace('0x', '#'),
+													transparent: true,
+													opacity: 0.06,
+													side: THREE.DoubleSide
+												});
+	this.mesh = new THREE.Mesh(geomLayer, matLayer);
+}
+
+ShockwavesHolder =function()
+{
+	this.mesh = new THREE.Object3D();
+	this.shockwavesPool = [];
+	this.shockwavesInUse = [];
+
+	this.color;
+}
+
+ShockwavesHolder.prototype.spawnShockwave = function(magnitude)
+{
+    var numShockwaves = 1;
+	if(this.shockwavesInUse.length < 6)
+	{
+		for(var i=0; i<numShockwaves; i++)
+		{
+			var shockwave;
+			if(this.shockwavesPool.length)
+			{
+				shockwave = this.shockwavesPool.pop();
+			}
+			else
+			{
+				shockwave = new Shockwave(this.color);
+			}
+			var _this = this;
+
+			shockwave.mesh.scale.set(0.1, 0.1, 0.1);
+			this.mesh.add(shockwave.mesh);
+			this.shockwavesInUse.push(shockwave);
+
+			createjs.Tween.get(shockwave.mesh.scale, {override:true})
+	        	.to({x: 25, y: 25, z: 25}, 2000);
+		}
+	}
+}
+
+ShockwavesHolder.prototype.update = function(gAudio)
+{
+	if(gAudio.check(this))
+	{
+		this.spawnShockwave(gAudio.magnitude);
+	}
+
+	for(var i=0; i<this.shockwavesInUse.length; i++)
+	{
+		var shockwave = this.shockwavesInUse[i];
+		if(shockwave.mesh.scale.x >= 25)
+		{	
+			this.shockwavesPool.unshift(this.shockwavesInUse.splice(i, 1)[0]);
+			this.mesh.remove(shockwave.mesh);
+		}
+	}
+}
+
 	/*
 		_PLANETHOLDER
 	*/
@@ -1524,10 +1614,25 @@ PlanetHolder.prototype.moveFragments = function()
 	}
 }
 
+PlanetHolder.prototype.createShockwaves = function()
+{
+	this.shockwavesHolder = new ShockwavesHolder();
+	this.shockwavesHolder.color = this.color;
+
+	for(var i=0; i<6; i++)
+	{
+		var shockwave = new Shockwave(this.color);
+		this.shockwavesHolder.shockwavesPool.push(shockwave);
+	}
+
+	this.mesh.add(this.shockwavesHolder.mesh);
+}
+
 PlanetHolder.prototype.update = function(gAudio)
 {
 	this.atmosphere.move(gAudio);
 	this.planet.move(gAudio);
+	this.shockwavesHolder.update(gAudio);
 
 	this.planet.mesh.rotation.y += 0.0005;
 	this.planet.mesh.rotation.z += 0.005;

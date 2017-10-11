@@ -867,9 +867,10 @@ GameDOM.prototype.endEvent = function()
 	this.scores.comets.innerHTML = this.game.gScore.cometScore;
 	this.scores.walls.innerHTML = this.game.gScore.wallScore;
 	this.scores.total.innerHTML = this.game.gScore.score;
-
-	this.game.joystick.reset();
-
+	if(isMobile.any())
+	{
+		this.game.joystick.reset();
+	}
 	this.updateProgression();
 
 	var _this = this;
@@ -1532,7 +1533,7 @@ Shockwave = function(color)
 													color: color.clear.replace('0x', '#'), 
 													specular: color.clear.replace('0x', '#'),
 													transparent: true,
-													opacity: 0.04,
+													opacity: 0.06,
 													side: THREE.DoubleSide
 												});
 	this.mesh = new THREE.Mesh(geomLayer, matLayer);
