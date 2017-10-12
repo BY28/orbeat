@@ -59,7 +59,9 @@
  		TWINS MODE ADD NUMBER WALLS SPAWN (LIMITED TO 6)
  		BACKGROUND SHOCKWAVES
  		CHANGE FRAGMENTS GEOMETRY TO CONE GEOMETRY (RADIAL SEGMENTS 3)
-	
+		
+
+		MOVE COLLISION BREAK TO PHONE <----------
 
 */
 
@@ -206,20 +208,23 @@ Game.prototype.updateObjects = function()
 		y: this.starsHolder.starsInUse[0].mesh.position.y
 	};
 
-	createjs.Tween.get(this.planetHolder.mesh.position, {override:true})
-        .to({x: -starPos.x*0.2, y: 125-(starPos.y*0.2)}, 250);
+	if(this.mode == 'orb')
+	{		
+		createjs.Tween.get(this.planetHolder.mesh.position, {override:true})
+	        .to({x: -starPos.x*0.2, y: 125-(starPos.y*0.2)}, 250);
 
-	createjs.Tween.get(this.wallsHolder.mesh.position, {override:true})
-        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+		createjs.Tween.get(this.wallsHolder.mesh.position, {override:true})
+	        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
 
-	createjs.Tween.get(this.cometsHolder.mesh.position, {override:true})
-        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
+		createjs.Tween.get(this.cometsHolder.mesh.position, {override:true})
+	        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
 
-	createjs.Tween.get(this.portalsHolder.mesh.position, {override:true})
-        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
+		createjs.Tween.get(this.portalsHolder.mesh.position, {override:true})
+	        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
 
-	createjs.Tween.get(this.particlesHolder.mesh.position, {override:true})
-        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+		createjs.Tween.get(this.particlesHolder.mesh.position, {override:true})
+	        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
+	}
 
 
 	if(this.starsHolder.life <= 0)
@@ -249,6 +254,18 @@ Game.prototype.spawnObjects = function()
 	{
 		this.cometsHolder.spawnComets(Math.floor(this.gAudio.context.currentTime));
 	}
+
+	if(this.mode != 'orb' && this.gAudio.context.state == 'running')
+	{
+		var pTime = Math.min(Math.floor(100 * this.gAudio.context.currentTime/this.gAudio.sound._duration), 100);
+		if( pTime % 18 == 0 &&  pTime > this.wallsHolder.wallsLastUpdate)
+		{
+			this.wallsHolder.numWalls++;
+			this.wallsHolder.maxWwalls++;
+			this.wallsHolder.wallsLastUpdate = pTime;
+		}
+	}
+
 
 	if(Math.floor(this.gAudio.context.currentTime)%15 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.speedLastUpdate)
 	{	
@@ -404,7 +421,17 @@ Game.prototype.resetVariables = function()
 	/* WALLS */
 
 	this.wallsHolder.speed = 1;
-	
+	this.wallsHolder.wallsLastUpdate = 0;
+	if(this.mode == 'twins')
+	{
+		this.wallsHolder.numWalls = 1;
+		this.wallsHolder.maxWalls = 1;
+	}
+	else
+	{
+		this.wallsHolder.numWalls = 1;
+		this.wallsHolder.maxWalls = 6;
+	}
 
 	/* PORTALS */
 
@@ -1308,14 +1335,17 @@ WallsHolder = function(color)
 
 	this.color;
 	this.speed = 1;
+
+	this.numWalls = 1;
+	this.maxWalls = 1;
+	this.wallsLastUpdate = 0;
 }
 
-WallsHolder.prototype.spawnWalls = function()
+WallsHolder.prototype.spawnWalls = function(mode)
 {
-	var numWalls = 1;
-	if(this.wallsInUse.length < 6)
+	if(this.wallsInUse.length < this.maxWalls)
 	{
-		for(var i=0; i<numWalls; i++)
+		for(var i=0; i<this.numWalls; i++)
 		{
 			if(this.wallsPool.length)
 			{
@@ -1326,14 +1356,18 @@ WallsHolder.prototype.spawnWalls = function()
 				wall = new Wall(this.color);
 			}
 
-			wall.angle = Math.random()*Math.PI*2/numWalls;
+			wall.angle = Math.random()*Math.PI*2/this.numWalls;
 			wall.height = 25;
-			wall.mesh.position.x = Math.cos(wall.angle)*wall.height;
-			wall.mesh.position.y = Math.sin(wall.angle)*wall.height;
+			wall.mesh.position.x = (Math.random() < 0.5 ? -1 : 1 ) * Math.cos(wall.angle)*wall.height;
+			wall.mesh.position.y = (Math.random() < 0.5 ? -1 : 1 ) * Math.sin(wall.angle)*wall.height;
 			wall.mesh.position.z = -100;
 			wall.mesh.scale.z = 0.1;
-
-			wall.mesh.lookAt(new THREE.Vector3( (Math.random()*(25+25)-25) , (Math.random()*(25+25)-25) , wall.mesh.position.z));
+			var target = {
+				x: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
+				y: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
+				z: wall.mesh.position.z
+			}
+			wall.mesh.lookAt(new THREE.Vector3(target.x, target.y, target.z));
 
 			createjs.Tween.get(wall.mesh.scale, {override:true})
 	        	.to({z: 250}, (1/this.speed)*1000);
@@ -2238,6 +2272,7 @@ GameCollision.prototype.update = function()
 		for(var j=0; j<star.ringsInUse.length; j++)
 		{
 				var ring = star.ringsInUse[j];
+				var collision = false;
 				for (var vertexIndex = 0; vertexIndex < ring.mesh.geometry.vertices.length-1; vertexIndex++)
 				{		
 					var localVertex = ring.mesh.geometry.vertices[vertexIndex].clone();
@@ -2282,7 +2317,36 @@ GameCollision.prototype.update = function()
 							this.game.gDOM.resetColors();
 						}
 					}
-					
+
+					if(this.game.cometsHolder.cometsList.length)
+					{
+						var cometsCollision = ray.intersectObjects( this.game.cometsHolder.cometsList );
+						if ( cometsCollision.length > 0 && cometsCollision[0].distance < directionVector.length() ) 
+						{
+							var collisionMesh = cometsCollision[0].object;
+							var comet = this.game.cometsHolder.cometsInUse[this.game.cometsHolder.cometsList.indexOf(collisionMesh)];
+
+							this.game.cometsHolder.cometsPool.unshift(this.game.cometsHolder.cometsInUse.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1)[0]);
+							this.game.cometsHolder.cometsList.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1);
+
+							this.game.ambientLight.intensity = 0.8;
+							createjs.Tween.get(this.game.ambientLight, {override:true})
+         							.to({intensity: 0.6}, 500);
+
+							var starMesh = star.mesh;
+
+							createjs.Tween.get(starMesh.scale, {override:true})
+         						.to({x: 0.1, y: 0.1, z: 0.1}, 50)
+         						.call(function(){
+									createjs.Tween.get(starMesh.scale, {override:true})
+         							.to({x: 1, y: 1, z: 1}, 150);
+							});
+
+							this.game.cometsHolder.mesh.remove(comet.mesh);
+							this.game.gScore.cometScoreUpdate();
+						}
+					}
+
 					if(this.game.wallsHolder.wallsList.length)
 					{
 						var wallsCollision = ray.intersectObjects( this.game.wallsHolder.wallsList );
@@ -2327,39 +2391,16 @@ GameCollision.prototype.update = function()
 							    this.game.gScore.wallScoreUpdate();
 							    this.game.gDOM.updateLife(this.game.starsHolder.life, this.game.starsHolder.maxLife);
 						    }
+						    collision = true;
+						    break;
 						} 
 					}
 
-					if(this.game.cometsHolder.cometsList.length)
-					{
-						var cometsCollision = ray.intersectObjects( this.game.cometsHolder.cometsList );
-						if ( cometsCollision.length > 0 && cometsCollision[0].distance < directionVector.length() ) 
-						{
-							var collisionMesh = cometsCollision[0].object;
-							var comet = this.game.cometsHolder.cometsInUse[this.game.cometsHolder.cometsList.indexOf(collisionMesh)];
-
-							this.game.cometsHolder.cometsPool.unshift(this.game.cometsHolder.cometsInUse.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1)[0]);
-							this.game.cometsHolder.cometsList.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1);
-
-							this.game.ambientLight.intensity = 0.8;
-							createjs.Tween.get(this.game.ambientLight, {override:true})
-         							.to({intensity: 0.6}, 500);
-
-							var starMesh = star.mesh;
-
-							createjs.Tween.get(starMesh.scale, {override:true})
-         						.to({x: 0.1, y: 0.1, z: 0.1}, 50)
-         						.call(function(){
-									createjs.Tween.get(starMesh.scale, {override:true})
-         							.to({x: 1, y: 1, z: 1}, 150);
-							});
-
-							this.game.cometsHolder.mesh.remove(comet.mesh);
-							this.game.gScore.cometScoreUpdate();
-						}
-					}
-
 				}
+			if(collision)
+			{
+				break;
+			}
 		}	
 	}
 }
