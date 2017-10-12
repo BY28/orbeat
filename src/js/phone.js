@@ -1285,7 +1285,7 @@ WallsHolder.prototype.spawnWalls = function(mode)
 			wall = new Wall(this.color);
 		}
 
-		wall.angle = Math.random()*Math.PI*2/this.numWalls;
+		wall.angle = Math.random()*Math.PI*2/this.numWalls * (i > 0 ? i : 1);
 		wall.height = 25;
 		wall.mesh.position.x = (Math.random() < 0.5 ? -1 : 1 ) * Math.cos(wall.angle)*wall.height;
 		wall.mesh.position.y = (Math.random() < 0.5 ? -1 : 1 ) * Math.sin(wall.angle)*wall.height;
