@@ -1274,38 +1274,38 @@ WallsHolder.prototype.spawnWalls = function(mode)
 {
 	if(this.wallsInUse.length < this.maxWalls)
 	{
-	for(var i=0; i<this.numWalls; i++)
-	{
-		if(this.wallsPool.length)
+		for(var i=0; i<this.numWalls; i++)
 		{
-			wall = this.wallsPool.pop();
-		}
-		else
-		{
-			wall = new Wall(this.color);
-		}
-
-		wall.angle = Math.random()*Math.PI*2/this.numWalls * (i > 0 ? i : 1);
-		wall.height = 25;
-		wall.mesh.position.x = (Math.random() < 0.5 ? -1 : 1 ) * Math.cos(wall.angle)*wall.height;
-		wall.mesh.position.y = (Math.random() < 0.5 ? -1 : 1 ) * Math.sin(wall.angle)*wall.height;
-		wall.mesh.position.z = -100;
-		wall.mesh.scale.z = 0.1;
-
-		var target = {
-				x: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
-				y: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
-				z: wall.mesh.position.z
+			if(this.wallsPool.length)
+			{
+				wall = this.wallsPool.pop();
 			}
-			wall.mesh.lookAt(new THREE.Vector3(target.x, target.y, target.z));
+			else
+			{
+				wall = new Wall(this.color);
+			}
 
-		createjs.Tween.get(wall.mesh.scale, {override:true})
-        	.to({z: 250}, (1/this.speed)*1000);
+			wall.angle = Math.random()*Math.PI*2/this.numWalls * (i > 0 ? i : 1);
+			wall.height = 25;
+			wall.mesh.position.x = (Math.random() < 0.5 ? -1 : 1 ) * Math.cos(wall.angle)*wall.height;
+			wall.mesh.position.y = (Math.random() < 0.5 ? -1 : 1 ) * Math.sin(wall.angle)*wall.height;
+			wall.mesh.position.z = -100;
+			wall.mesh.scale.z = 0.1;
 
-		this.mesh.add(wall.mesh);
-		this.wallsInUse.push(wall);
-		this.wallsList.push(wall.mesh);
-	}
+			var target = {
+					x: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
+					y: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
+					z: wall.mesh.position.z
+				}
+				wall.mesh.lookAt(new THREE.Vector3(target.x, target.y, target.z));
+
+			createjs.Tween.get(wall.mesh.scale, {override:true})
+	        	.to({z: 250}, (1/this.speed)*1000);
+
+			this.mesh.add(wall.mesh);
+			this.wallsInUse.push(wall);
+			this.wallsList.push(wall.mesh);
+		}
 	}
 }
 

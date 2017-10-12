@@ -242,7 +242,7 @@ Game.prototype.spawnObjects = function()
 {
 	if(this.gAudio.check(this.wallsHolder))
 	{
-		this.wallsHolder.spawnWalls();
+		this.wallsHolder.spawnWalls(this.mode);
 	}
 
 	if(Math.floor(this.gAudio.context.currentTime)%10 == 0 && this.gAudio.context.state == 'running' && Math.floor(this.gAudio.context.currentTime) > this.portalsHolder.portalLastSpawn)
@@ -1362,12 +1362,13 @@ WallsHolder.prototype.spawnWalls = function(mode)
 			wall.mesh.position.y = (Math.random() < 0.5 ? -1 : 1 ) * Math.sin(wall.angle)*wall.height;
 			wall.mesh.position.z = -100;
 			wall.mesh.scale.z = 0.1;
+
 			var target = {
-				x: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
-				y: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
-				z: wall.mesh.position.z
-			}
-			wall.mesh.lookAt(new THREE.Vector3(target.x, target.y, target.z));
+					x: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
+					y: (mode == 'orb') ? (Math.random()*(25+25)-25) : 0,
+					z: wall.mesh.position.z
+				}
+				wall.mesh.lookAt(new THREE.Vector3(target.x, target.y, target.z));
 
 			createjs.Tween.get(wall.mesh.scale, {override:true})
 	        	.to({z: 250}, (1/this.speed)*1000);
