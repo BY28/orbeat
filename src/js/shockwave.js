@@ -60,8 +60,12 @@
  		BACKGROUND SHOCKWAVES
  		CHANGE FRAGMENTS GEOMETRY TO CONE GEOMETRY (RADIAL SEGMENTS 3)
 		
-
+		PERFORMANCE :
+		
 		MOVE COLLISION BREAK TO PHONE <----------
+		
+		WALLS/PLANET/ATMOSPHERE MESHPHONGMATERIAL
+		COLLISION INCREATE J BY 2
 
 */
 
@@ -201,7 +205,7 @@ Game.prototype.updateObjects = function()
 	this.gDOM.updateScore();
 	this.gAudio.update(this);
 
-	this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x, this.starsHolder.starsInUse[0].mesh.position.y + 5, 15));
+	/*this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x, this.starsHolder.starsInUse[0].mesh.position.y - 2.5, 15));*/
 
 	var starPos = {
 		x: this.starsHolder.starsInUse[0].mesh.position.x,
@@ -209,10 +213,7 @@ Game.prototype.updateObjects = function()
 	};
 
 	if(this.mode == 'orb')
-	{		
-		createjs.Tween.get(this.planetHolder.mesh.position, {override:true})
-	        .to({x: -starPos.x*0.2, y: 125-(starPos.y*0.2)}, 250);
-
+	{
 		createjs.Tween.get(this.wallsHolder.mesh.position, {override:true})
 	        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
 
@@ -334,17 +335,17 @@ Game.prototype.postprocessing = function()
 
 Game.prototype.lights = function()
 {
-	this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+	this.ambientLight = new THREE.AmbientLight(0xffffff, 1);
 	this.scene.add(this.ambientLight);
 
-	this.pointLight = new THREE.PointLight(0xffffff, 0.8, 500);
-	this.pointLight.position.set(0, 2, 0);
-	this.scene.add(this.pointLight);
+	//this.pointLight = new THREE.PointLight(0xffffff, 0.8, 500);
+	//this.pointLight.position.set(0, 2, 0);
+	this.pointLight = new THREE.DirectionalLight(0xffffff, 0.6);
+	this.pointLight.position.set(0, 0, 15);
+	this.pointLight.castShadow = false;
 
-	this.pLight = this.pointLight.clone();
-	this.pLight.intensity = 0.6;
-	this.pLight.position.set(0, -175, 0);
-	this.scene.add(this.pLight)
+
+	this.scene.add(this.pointLight);
 }
 
 	/*
@@ -623,7 +624,7 @@ Game.prototype.addParticles = function()
 {
 	this.particlesHolder = new ParticlesHolder();
 
-	this.particlesHolder.createParticles(0.2, true, 1, false, 0xffffff, true, 6, 60);
+	this.particlesHolder.createParticles(0.2, true, 1, false, 0xffffff, true, 3, 30);
 
 	this.scene.add(this.particlesHolder.mesh);
 }
@@ -1319,7 +1320,7 @@ Wall = function(color)
 		color: color.dark.replace('0x', '#'),
 		specular: color.clear.replace('0x', '#'),
 		transparent: true,
-		opacity: 0.8
+		opacity: 1
 	});
 	this.mesh = new THREE.Mesh(geometry, material);
 	this.angle = 0;
@@ -1465,8 +1466,8 @@ Planet = function(color)
 												opacity: 0.6,
 											});
 
-	var wireframeMaterial = new THREE.MeshPhongMaterial({
-												color: color.dark.replace('0x', '#'), 
+	var wireframeMaterial = new THREE.MeshLambertMaterial({
+												color: color.clear.replace('0x', '#'), 
 												/*specular: color.clear.replace('0x', '#'),*/
 												transparent: true, 
 												opacity: 0.6,
@@ -1496,7 +1497,7 @@ Planet.prototype.move = function(gAudio)
 Satellite = function(radius, color)
 {
 	var geometry = new THREE.DodecahedronGeometry(radius, 0);
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshLambertMaterial({
 												color: color.dark.replace('0x', '#'),
 												specular: color.dark.replace('0x', '#'),
 												transparent: true,
@@ -1528,7 +1529,7 @@ Satellite.prototype.move = function()
 Fragment = function(radius, color)
 {
 	var geometry = new THREE.ConeGeometry(radius, radius, 3);
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshLambertMaterial({
 												color: color.clear.replace('0x', '#'),
 												specular: color.clear.replace('0x', '#'),
 												transparent: true,
@@ -1564,7 +1565,7 @@ Fragment.prototype.move = function()
 Shockwave = function(color)
 {
 	var geomLayer = new THREE.RingGeometry(26, 30, 30);
-	var matLayer = new THREE.MeshPhongMaterial({
+	var matLayer = new THREE.MeshLambertMaterial({
 													color: color.clear.replace('0x', '#'), 
 													specular: color.clear.replace('0x', '#'),
 													transparent: true,
@@ -1772,7 +1773,7 @@ PlanetHolder.prototype.resetColor = function(gColor)
 PortalLayer = function(radius, tube, tubularSegments, color)
 {
 	var geomLayer = new THREE.TorusGeometry(radius, tube, 2, tubularSegments);
-	var matLayer = new THREE.MeshPhongMaterial({
+	var matLayer = new THREE.MeshLambertMaterial({
 													color: color.replace('0x', '#'), 
 													specular: color.replace('0x', '#'),
 													transparent: true,
@@ -1810,7 +1811,7 @@ Portal = function(color)
 	}
 
 	var geometry = new THREE.CircleGeometry(1.2, tubularSegments);
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshLambertMaterial({
 													color: color.clear.replace('0x', '#'),
 													specular: color.clear.replace('0x', '#'),
 													transparent: true,
@@ -1904,7 +1905,7 @@ Coma = function(color)
 	this.mesh = new THREE.Object3D();
 
 	var geomFirstPoint = new THREE.IcosahedronGeometry(0.1, 0);
-	var matFirstPoint = new THREE.MeshPhongMaterial({
+	var matFirstPoint = new THREE.MeshLambertMaterial({
 													color: color.dark.replace('0x', '#'), 
 													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
@@ -1914,7 +1915,7 @@ Coma = function(color)
 	this.firstPoint = new THREE.Mesh(geomFirstPoint, matFirstPoint);
 
 	var geomSecondPoint = new THREE.IcosahedronGeometry(0.1, 1);
-	var matSecondPoint = new THREE.MeshPhongMaterial({
+	var matSecondPoint = new THREE.MeshLambertMaterial({
 													color: color.dark.replace('0x', '#'), 
 													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
@@ -1924,7 +1925,7 @@ Coma = function(color)
 	this.secondPoint = new THREE.Mesh(geomSecondPoint, matSecondPoint);
 
 	var geomThirdPoint = new THREE.IcosahedronGeometry(0.1, 1);
-	var matThirdPoint = new THREE.MeshPhongMaterial({
+	var matThirdPoint = new THREE.MeshLambertMaterial({
 													color: color.dark.replace('0x', '#'), 
 													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
@@ -1934,7 +1935,7 @@ Coma = function(color)
 	this.thirdPoint = new THREE.Mesh(geomThirdPoint, matThirdPoint);
 
 	var geomFourthPoint = new THREE.IcosahedronGeometry(0.1, 1);
-	var matFourthPoint = new THREE.MeshPhongMaterial({
+	var matFourthPoint = new THREE.MeshLambertMaterial({
 													color: color.dark.replace('0x', '#'), 
 													specular: color.dark.replace('0x', '#'), 
 													transparent: true, 
@@ -1983,14 +1984,14 @@ Coma.prototype.move = function()
 CometCore = function(color)
 {
 	var geometry = new THREE.DodecahedronGeometry(0.2, 0);
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshLambertMaterial({
 												color: color.clear.replace('0x', '#'), 
 												specular: color.clear.replace('0x', '#'),
 												transparent: true, 
 												opacity: 0.8,
 											});
 
-	var wireframeMaterial = new THREE.MeshPhongMaterial({
+	var wireframeMaterial = new THREE.MeshLambertMaterial({
 												color: color.clear.replace('0x', '#'), 
 												specular: color.clear.replace('0x', '#'),
 												transparent: true, 
@@ -2016,7 +2017,7 @@ Comet = function(color)
 	this.mesh.add(this.coma.mesh);
 
 	var geometry = new THREE.DodecahedronGeometry(0.4, 0);
-	var material = new THREE.MeshPhongMaterial({
+	var material = new THREE.MeshLambertMaterial({
 												color: '#ffffff', 
 												specular: '#ffffff',
 												transparent: true, 
@@ -2133,7 +2134,7 @@ Ring = function(color, radius, tube, tubularSegments, opacity)
 	this.speed = 0.05;
 
 	var geomRing = new THREE.TorusGeometry(radius, tube, 2, tubularSegments);
-	var matRing = new THREE.MeshPhongMaterial({
+	var matRing = new THREE.MeshLambertMaterial({
 													color: color.clear.replace('0x', '#'), 
 													/*specular: color.clear.replace('0x', '#'),*/
 													transparent: true,
@@ -2174,7 +2175,7 @@ Star = function(color)
 	}
 
 	var geomCore = new THREE.SphereGeometry(0.03, 10, 10);
-	var matCore = new THREE.MeshPhongMaterial({color: '#ffffff',wireframe: true});
+	var matCore = new THREE.MeshLambertMaterial({color: '#ffffff',wireframe: true});
 	this.core = new THREE.Mesh(geomCore, matCore);
 	this.mesh.add(this.core);
 }
@@ -2274,7 +2275,7 @@ GameCollision.prototype.update = function()
 		{
 				var ring = star.ringsInUse[j];
 				var collision = false;
-				for (var vertexIndex = 0; vertexIndex < ring.mesh.geometry.vertices.length-1; vertexIndex++)
+				for (var vertexIndex = 0; vertexIndex < ring.mesh.geometry.vertices.length-1; vertexIndex+=4)
 				{		
 					var localVertex = ring.mesh.geometry.vertices[vertexIndex].clone();
 					var globalVertex = localVertex.applyMatrix4( ring.mesh.matrix );
@@ -2284,7 +2285,16 @@ GameCollision.prototype.update = function()
 					
 					if(this.game.portalsHolder.portalsList.length)
 					{
-						var portalsCollision = ray.intersectObjects( this.game.portalsHolder.portalsList );
+						var portalIntersect = [];
+						for(var i=0; i<this.game.portalsHolder.portalsList.length; i++)
+						{
+							var p = this.game.portalsHolder.portalsList[i];
+							if(p.position.z > (-5 * this.game.portalsHolder.speed) && p.position.z < 5)
+							{
+								portalIntersect.push(p);
+							}
+						}
+						var portalsCollision = ray.intersectObjects( portalIntersect );
 						if ( portalsCollision.length > 0 && portalsCollision[0].distance < directionVector.length() ) 
 						{
 							var collisionMesh = portalsCollision[0].object;
@@ -2321,7 +2331,17 @@ GameCollision.prototype.update = function()
 
 					if(this.game.cometsHolder.cometsList.length)
 					{
-						var cometsCollision = ray.intersectObjects( this.game.cometsHolder.cometsList );
+						var cometIntersect = [];
+						for(var i=0; i<this.game.cometsHolder.cometsList.length; i++)
+						{
+							var c = this.game.cometsHolder.cometsList[i];
+							if(c.position.z > (-5 * this.game.cometsHolder.speed) && c.position.z < 5)
+							{
+								cometIntersect.push(c);
+							}
+						}
+
+						var cometsCollision = ray.intersectObjects( cometIntersect);
 						if ( cometsCollision.length > 0 && cometsCollision[0].distance < directionVector.length() ) 
 						{
 							var collisionMesh = cometsCollision[0].object;
@@ -2329,10 +2349,6 @@ GameCollision.prototype.update = function()
 
 							this.game.cometsHolder.cometsPool.unshift(this.game.cometsHolder.cometsInUse.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1)[0]);
 							this.game.cometsHolder.cometsList.splice(this.game.cometsHolder.cometsList.indexOf(collisionMesh), 1);
-
-							this.game.ambientLight.intensity = 0.8;
-							createjs.Tween.get(this.game.ambientLight, {override:true})
-         							.to({intensity: 0.6}, 500);
 
 							var starMesh = star.mesh;
 
@@ -2350,7 +2366,17 @@ GameCollision.prototype.update = function()
 
 					if(this.game.wallsHolder.wallsList.length)
 					{
-						var wallsCollision = ray.intersectObjects( this.game.wallsHolder.wallsList );
+						var wallIntersect = [];
+						for(var i=0; i<this.game.wallsHolder.wallsList.length; i++)
+						{
+							var w = this.game.wallsHolder.wallsList[i];
+							if(w.position.z > (-5 * this.game.wallsHolder.speed) && w.position.z < 5)
+							{
+								wallIntersect.push(w);
+							}
+						}
+
+						var wallsCollision = ray.intersectObjects( wallIntersect );
 						if ( wallsCollision.length > 0 && wallsCollision[0].distance < directionVector.length() )
 						{
 
