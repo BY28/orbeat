@@ -567,7 +567,7 @@ Game.prototype.addWalls = function()
 		this.wallsHolder.wallsPool.push(wall);
 	}
 
-	this.gAudio.addObject(this.wallsHolder, 25, 150, 250);
+	this.gAudio.addObject(this.wallsHolder, 25, Math.floor(150/4), Math.floor(250/4));
 	this.scene.add(this.wallsHolder.mesh);
 }
 
@@ -585,9 +585,9 @@ Game.prototype.addPlanet = function()
 	this.planetHolder.createFragments();
 	this.planetHolder.createShockwaves();
 
-	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
-	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
-	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, 150, 250);
+	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, Math.floor(250/4));
+	this.gAudio.addObject(this.planetHolder.planet, 4, 0, Math.floor(250/4));
+	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, Math.floor(150/4), Math.floor(250/4));
 
 	this.scene.add(this.planetHolder.mesh);
 }

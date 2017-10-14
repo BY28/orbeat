@@ -424,7 +424,7 @@ WebAudio.Sound	= function(webaudio, nodeChain){
 	this._panner	= this._chain.nodes().panner;
 	this._duration = 0;
 
-	this._analyser.fftSize = 1024;
+	this._analyser.fftSize = 1024/4;
 	this._analyser.minDecibels = -75;
 	this._analyser.maxDecibels = 10;
 	this._analyser.smoothingTimeConstant = 0.75;

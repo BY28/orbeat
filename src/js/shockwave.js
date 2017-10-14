@@ -496,8 +496,8 @@ Game.prototype.wait = function()
 	this.planetHolder.moveFragments();
 	this.cometsHolder.update();
 
-	createjs.Tween.get(this.camera.position, {override:true})
-        .to({y: -10}, 3000);
+	/*createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: -10}, 3000);*/
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 25*Math.PI/180}, 2500);
 }
@@ -511,8 +511,8 @@ Game.prototype.start = function()
 
 	this.gDOM.gameContainer.style.cursor = 'none';
 
-	createjs.Tween.get(this.camera.position, {override:true})
-        .to({y: 0}, 2500);
+	/*createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: 0}, 2500);*/
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 0}, 2500);
 	
@@ -604,8 +604,8 @@ Game.prototype.pause = function()
 		this.joystick.removeEvents();
 	}
 
-	createjs.Tween.get(this.camera.position, {override:true})
-        .to({y: -10}, 2500);
+	/*createjs.Tween.get(this.camera.position, {override:true})
+        .to({y: -10}, 2500);*/
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 25*Math.PI/180}, 2500);
 
@@ -641,7 +641,7 @@ Game.prototype.addWalls = function()
 		this.wallsHolder.wallsPool.push(wall);
 	}
 
-	this.gAudio.addObject(this.wallsHolder, 25, 150, 250);
+	this.gAudio.addObject(this.wallsHolder, 25, Math.floor(150/4), Math.floor(250/4));
 	this.scene.add(this.wallsHolder.mesh);
 }
 
@@ -659,9 +659,9 @@ Game.prototype.addPlanet = function()
 	this.planetHolder.createFragments();
 	this.planetHolder.createShockwaves();
 
-	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, 250);
-	this.gAudio.addObject(this.planetHolder.planet, 4, 0, 250);
-	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, 150, 250);
+	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, Math.floor(250/4));
+	this.gAudio.addObject(this.planetHolder.planet, 4, 0, Math.floor(250/4));
+	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, Math.floor(150/4), Math.floor(250/4));
 
 	this.scene.add(this.planetHolder.mesh);
 }
@@ -1985,7 +1985,7 @@ CometCore = function(color)
 {
 	var geometry = new THREE.DodecahedronGeometry(0.2, 0);
 	var material = new THREE.MeshLambertMaterial({
-												color: color.clear.replace('0x', '#'), 
+												color: 0xffffff, 
 												specular: color.clear.replace('0x', '#'),
 												transparent: true, 
 												opacity: 0.8,
