@@ -259,7 +259,7 @@ Game.prototype.spawnObjects = function()
 	if(this.mode != 'orb' && this.gAudio.context.state == 'running')
 	{
 		var pTime = Math.min(Math.floor(100 * this.gAudio.context.currentTime/this.gAudio.sound._duration), 100);
-		if( pTime % 18 == 0 &&  pTime > this.wallsHolder.wallsLastUpdate)
+		if( pTime % 25 == 0 &&  pTime > this.wallsHolder.wallsLastUpdate)
 		{
 			this.wallsHolder.numWalls++;
 			this.wallsHolder.maxWwalls++;
@@ -431,7 +431,7 @@ Game.prototype.resetVariables = function()
 	else
 	{
 		this.wallsHolder.numWalls = 1;
-		this.wallsHolder.maxWalls = 6;
+		this.wallsHolder.maxWalls = 4;
 	}
 
 	/* PORTALS */
@@ -1587,7 +1587,7 @@ ShockwavesHolder =function()
 ShockwavesHolder.prototype.spawnShockwave = function(magnitude)
 {
     var numShockwaves = 1;
-	if(this.shockwavesInUse.length < 6)
+	if(this.shockwavesInUse.length < 4)
 	{
 		for(var i=0; i<numShockwaves; i++)
 		{
@@ -2062,7 +2062,7 @@ CometsHolder.prototype.spawnComets = function(spawnTime)
 		comet.mesh.scale.set(0.1, 0.1, 0.1);
 
 		createjs.Tween.get(comet.mesh.scale, {override:true})
-    		.to({x: 1.5, y: 1.5, z: 1.5}, 1000);
+    		.to({x: 2, y: 2, z: 2}, 1000);
 
 		this.mesh.add(comet.mesh);
 		this.cometsList.push(comet.collisionMesh);
