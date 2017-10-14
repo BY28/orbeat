@@ -205,8 +205,6 @@ Game.prototype.updateObjects = function()
 	this.gDOM.updateScore();
 	this.gAudio.update(this);
 
-	/*this.pointLight.position.copy(new THREE.Vector3(this.starsHolder.starsInUse[0].mesh.position.x, this.starsHolder.starsInUse[0].mesh.position.y - 2.5, 15));*/
-
 	var starPos = {
 		x: this.starsHolder.starsInUse[0].mesh.position.x,
 		y: this.starsHolder.starsInUse[0].mesh.position.y
@@ -222,9 +220,6 @@ Game.prototype.updateObjects = function()
 
 		createjs.Tween.get(this.portalsHolder.mesh.position, {override:true})
 	        .to({x: -starPos.x*0.2, y: -(starPos.y*0.2)}, 250);
-
-		createjs.Tween.get(this.particlesHolder.mesh.position, {override:true})
-	        .to({x: -starPos.x*0.6, y: -(starPos.y*0.6)}, 250);
 	}
 
 
@@ -338,14 +333,11 @@ Game.prototype.lights = function()
 	this.ambientLight = new THREE.AmbientLight(0xffffff, 1);
 	this.scene.add(this.ambientLight);
 
-	//this.pointLight = new THREE.PointLight(0xffffff, 0.8, 500);
-	//this.pointLight.position.set(0, 2, 0);
-	this.pointLight = new THREE.DirectionalLight(0xffffff, 0.6);
-	this.pointLight.position.set(0, 0, 15);
-	this.pointLight.castShadow = false;
+	this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+	this.directionalLight.position.set(0, 0, 15);
+	this.directionalLight.castShadow = false;
 
-
-	this.scene.add(this.pointLight);
+	this.scene.add(this.directionalLight);
 }
 
 	/*
@@ -431,7 +423,7 @@ Game.prototype.resetVariables = function()
 	else
 	{
 		this.wallsHolder.numWalls = 1;
-		this.wallsHolder.maxWalls = 4;
+		this.wallsHolder.maxWalls = 6;
 	}
 
 	/* PORTALS */
@@ -496,8 +488,6 @@ Game.prototype.wait = function()
 	this.planetHolder.moveFragments();
 	this.cometsHolder.update();
 
-	/*createjs.Tween.get(this.camera.position, {override:true})
-        .to({y: -10}, 3000);*/
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 25*Math.PI/180}, 2500);
 }
@@ -511,8 +501,6 @@ Game.prototype.start = function()
 
 	this.gDOM.gameContainer.style.cursor = 'none';
 
-	/*createjs.Tween.get(this.camera.position, {override:true})
-        .to({y: 0}, 2500);*/
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 0}, 2500);
 	
@@ -604,8 +592,6 @@ Game.prototype.pause = function()
 		this.joystick.removeEvents();
 	}
 
-	/*createjs.Tween.get(this.camera.position, {override:true})
-        .to({y: -10}, 2500);*/
     createjs.Tween.get(this.camera.rotation, {override:true})
         .to({x: 25*Math.PI/180}, 2500);
 
@@ -641,7 +627,7 @@ Game.prototype.addWalls = function()
 		this.wallsHolder.wallsPool.push(wall);
 	}
 
-	this.gAudio.addObject(this.wallsHolder, 25, Math.floor(150/4), Math.floor(250/4));
+	this.gAudio.addObject(this.wallsHolder, 30, Math.floor(150/4), Math.floor(250/4));
 	this.scene.add(this.wallsHolder.mesh);
 }
 
@@ -661,7 +647,7 @@ Game.prototype.addPlanet = function()
 
 	this.gAudio.addObject(this.planetHolder.atmosphere, 4, 0, Math.floor(250/4));
 	this.gAudio.addObject(this.planetHolder.planet, 4, 0, Math.floor(250/4));
-	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 25, Math.floor(150/4), Math.floor(250/4));
+	this.gAudio.addObject(this.planetHolder.shockwavesHolder, 30, Math.floor(150/4), Math.floor(250/4));
 
 	this.scene.add(this.planetHolder.mesh);
 }
@@ -1318,7 +1304,7 @@ Wall = function(color)
 	var geometry = new THREE.BoxGeometry(1, 1, 1);
 	var material = new THREE.MeshPhongMaterial({
 		color: color.dark.replace('0x', '#'),
-		specular: color.clear.replace('0x', '#'),
+		specular: color.dark.replace('0x', '#'),
 		transparent: true,
 		opacity: 1
 	});
@@ -1371,8 +1357,8 @@ WallsHolder.prototype.spawnWalls = function(mode)
 				}
 				wall.mesh.lookAt(new THREE.Vector3(target.x, target.y, target.z));
 
-			createjs.Tween.get(wall.mesh.scale, {override:true})
-	        	.to({z: 250}, (1/this.speed)*1000);
+			/*createjs.Tween.get(wall.mesh.scale, {override:true})
+	        	.to({z: 250}, (1/this.speed)*1000);*/
 
 			this.mesh.add(wall.mesh);
 			this.wallsInUse.push(wall);
@@ -1394,6 +1380,10 @@ WallsHolder.prototype.update = function()
 			createjs.Tween.get(wall.mesh.scale, {override:true})
          		.to({z: 0.1}, (1/this.speed)*0.2*100);
 		}
+		else if(wall.mesh.position.z < 10)
+		{
+			wall.mesh.scale.z += wall.mesh.scale.z < 250 ? this.speed*5 : 0;
+		}
 		if(wall.mesh.position.z > 15)
 		{
 			this.wallsPool.unshift(this.wallsInUse.splice(i, 1)[0]);
@@ -1404,9 +1394,9 @@ WallsHolder.prototype.update = function()
 	}
 }
 
-WallsHolder.prototype.resetColor = function(gColor)
+WallsHolder.prototype.resetColor = function(gColor, color)
 {
-	this.color = gColor.getRandom();
+	this.color = color;
 
 	for(var i=0; i<this.wallsPool.length; i++)
 	{
@@ -1622,6 +1612,7 @@ ShockwavesHolder.prototype.update = function(gAudio)
 	for(var i=0; i<this.shockwavesInUse.length; i++)
 	{
 		var shockwave = this.shockwavesInUse[i];
+
 		if(shockwave.mesh.scale.x >= 25)
 		{	
 			this.shockwavesPool.unshift(this.shockwavesInUse.splice(i, 1)[0]);
@@ -1744,9 +1735,9 @@ PlanetHolder.prototype.update = function(gAudio)
 	this.moveFragments();
 }
 
-PlanetHolder.prototype.resetColor = function(gColor)
+PlanetHolder.prototype.resetColor = function(gColor, color)
 {
-	this.color = gColor.getRandom();
+	this.color = color;
 
 	gColor.setObjectColor(this.color.clear, this.planet.mesh.children[0]);
 	gColor.setObjectColor(this.color.clear, this.planet.mesh.children[1]);
@@ -2275,7 +2266,7 @@ GameCollision.prototype.update = function()
 		{
 				var ring = star.ringsInUse[j];
 				var collision = false;
-				for (var vertexIndex = 0; vertexIndex < ring.mesh.geometry.vertices.length-1; vertexIndex+=4)
+				for (var vertexIndex = 0; vertexIndex < ring.mesh.geometry.vertices.length-1; vertexIndex+=3)
 				{		
 					var localVertex = ring.mesh.geometry.vertices[vertexIndex].clone();
 					var globalVertex = localVertex.applyMatrix4( ring.mesh.matrix );
@@ -2300,15 +2291,16 @@ GameCollision.prototype.update = function()
 							var collisionMesh = portalsCollision[0].object;
 							var portal = this.game.portalsHolder.portalsInUse[this.game.portalsHolder.portalsList.indexOf(collisionMesh)];
 
-							this.game.planetHolder.resetColor(this.game.gColor);
-							this.game.starsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
-							this.game.cometsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
-							this.game.portalsHolder.resetColor(this.game.gColor, this.game.planetHolder.color);
-							this.game.wallsHolder.resetColor(this.game.gColor);
-							this.game.renderer.setClearColor(this.game.wallsHolder.color.clear.replace('0x', '#'));
+							this.game.objectsColor = this.game.gColor.getRandom();
+							this.game.worldColor = this.game.gColor.getRandom();
+							
+							this.game.planetHolder.resetColor(this.game.gColor, this.game.objectsColor);
+							this.game.starsHolder.resetColor(this.game.gColor, this.game.objectsColor);
+							this.game.cometsHolder.resetColor(this.game.gColor, this.game.objectsColor);
+							this.game.portalsHolder.resetColor(this.game.gColor, this.game.objectsColor);
+							this.game.wallsHolder.resetColor(this.game.gColor, this.game.worldColor);
+							this.game.renderer.setClearColor(this.game.worldColor.clear.replace('0x', '#'));
 
-							this.game.objectsColor = this.game.planetHolder.color;
-							this.game.worldColor = this.game.wallsHolder.color;
 
 							this.game.portalsHolder.portalsList.splice(this.game.portalsHolder.portalsList.indexOf(collisionMesh), 1);
 
@@ -2454,7 +2446,7 @@ function loop()
 	}
 	else if(game.status == 'init')
 	{
-		game.initStart(); /* Add objects removed by game.load() */
+		game.initStart();
 	}
 	else if(game.status == 'start')
 	{
@@ -2462,7 +2454,6 @@ function loop()
 	}
 	else if(game.status == 'loading')
 	{
-		/* LOADING ANIMATION (remove objects and show loader)*/
 		game.load();
 		
 	}
